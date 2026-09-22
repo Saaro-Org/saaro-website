@@ -62,6 +62,7 @@ export default function Home() {
             <a href="#how-it-works">How it works</a>
             <a href="#for-drivers">For drivers</a>
             <a href="#trust">Trust &amp; safety</a>
+            <a href="/support">Support</a>
           </nav>
 
           <a className="nav-cta" href="#download">Get the app <span aria-hidden="true">↗</span></a>
@@ -85,6 +86,7 @@ export default function Home() {
             <a href="#for-drivers" onClick={closeMenu}>For drivers <span aria-hidden="true">↘</span></a>
             <a href="#trust" onClick={closeMenu}>Trust &amp; safety <span aria-hidden="true">↘</span></a>
             <a href="#questions" onClick={closeMenu}>Questions <span aria-hidden="true">↘</span></a>
+            <a href="/support" onClick={closeMenu}>Support <span aria-hidden="true">↗</span></a>
             <a className="mobile-menu-cta" href="#download" onClick={closeMenu}>Get the app <span aria-hidden="true">↗</span></a>
           </nav>
         </div>
