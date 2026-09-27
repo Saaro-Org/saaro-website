@@ -20,6 +20,11 @@ const requiredMarkers = [
   "'/admin/support/tickets'",
   "'/admin/audit'",
   'function Console',
+  'status=PUBLISHED',
+  'Active support tickets',
+  'Recent audit log',
+  'admin-console-expanded-row',
+  'expandedId',
 ];
 
 const missing = requiredMarkers.filter((marker) => !page.includes(marker));

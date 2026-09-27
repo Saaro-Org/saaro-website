@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_FLUXGO_API_URL || '').replace(/\/+$/, '');
 const PAGE_SIZE = 25;
+const OVERVIEW_LIST_LIMIT = 8;
 
 const SECTIONS = [
   { id: 'overview', label: 'Overview' },
@@ -142,7 +143,8 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-function FilterBar({ section, filters, setFilters, onSubmit }) {
+function FilterBar({ section, filters, setFilters }) {
+  const update = (key, value) => setFilters({ ...filters, [key]: value });
   const statusOptions = {
     members: ['ACTIVE', 'SUSPENDED', 'DELETED'],
     trips: ['DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
@@ -150,15 +152,14 @@ function FilterBar({ section, filters, setFilters, onSubmit }) {
     support: ['OPEN', 'CLOSED'],
   }[section] || [];
   if (section === 'audit') {
-    return <form className="admin-console-filters" onSubmit={onSubmit}><input value={filters.action || ''} onChange={(event) => setFilters({ ...filters, action: event.target.value })} placeholder="Filter by action" /><input value={filters.resourceType || ''} onChange={(event) => setFilters({ ...filters, resourceType: event.target.value })} placeholder="Resource type" /><button className="admin-console-secondary" type="submit">Apply</button></form>;
+    return <div className="admin-console-filters"><input value={filters.action || ''} onChange={(event) => update('action', event.target.value)} placeholder="Filter by action" /><input value={filters.resourceType || ''} onChange={(event) => update('resourceType', event.target.value)} placeholder="Resource type" /></div>;
   }
   return (
-    <form className="admin-console-filters" onSubmit={onSubmit}>
-      {section !== 'admins' ? <input value={filters.query || ''} onChange={(event) => setFilters({ ...filters, query: event.target.value })} placeholder={section === 'support' ? 'Subject or ticket reference' : 'Search by name or reference'} /> : null}
-      {statusOptions.length ? <select value={filters.status || ''} onChange={(event) => setFilters({ ...filters, status: event.target.value })}><option value="">All statuses</option>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select> : null}
-      {section === 'trips' ? <><input type="date" value={filters.departureFrom || ''} onChange={(event) => setFilters({ ...filters, departureFrom: event.target.value })} /><input type="date" value={filters.departureTo || ''} onChange={(event) => setFilters({ ...filters, departureTo: event.target.value })} /></> : null}
-      <button className="admin-console-secondary" type="submit">Apply</button>
-    </form>
+    <div className="admin-console-filters">
+      {section !== 'admins' ? <input value={filters.query || ''} onChange={(event) => update('query', event.target.value)} placeholder={section === 'support' ? 'Subject or ticket reference' : 'Search by name or reference'} /> : null}
+      {statusOptions.length ? <select value={filters.status || ''} onChange={(event) => update('status', event.target.value)}><option value="">All statuses</option>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select> : null}
+      {section === 'trips' ? <><input type="date" value={filters.departureFrom || ''} onChange={(event) => update('departureFrom', event.target.value)} /><input type="date" value={filters.departureTo || ''} onChange={(event) => update('departureTo', event.target.value)} /></> : null}
+    </div>
   );
 }
 
@@ -168,12 +169,23 @@ function Pagination({ page, total, onChange }) {
   return <div className="admin-console-pagination"><span>{total} result{total === 1 ? '' : 's'}</span><div><button className="admin-console-secondary" type="button" disabled={!hasPrevious} onClick={() => onChange(page - 1)}>Previous</button><span>Page {page + 1}</span><button className="admin-console-secondary" type="button" disabled={!hasNext} onClick={() => onChange(page + 1)}>Next</button></div></div>;
 }
 
-function Table({ columns, rows, onSelect, empty = 'No records found.' }) {
-  return <div className="admin-console-table-wrap"><table className="admin-console-table"><thead><tr>{columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => <tr key={row.id || row.publicId} onClick={() => onSelect?.(row)}>{columns.map((column) => <td key={column.key}>{column.render ? column.render(row) : display(row[column.key])}</td>)}</tr>) : <tr><td colSpan={columns.length} className="admin-console-empty">{empty}</td></tr>}</tbody></table></div>;
+function Table({ columns, rows, onSelect, expandedId, expandedContent, empty = 'No records found.' }) {
+  return <div className="admin-console-table-wrap"><table className="admin-console-table"><thead><tr>{columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => {
+    const rowId = row.id || row.publicId;
+    const isExpanded = expandedId !== null && expandedId !== undefined && String(expandedId) === String(rowId);
+    return <Fragment key={rowId}>
+      <tr className={onSelect ? 'admin-console-selectable-row' : undefined} onClick={onSelect ? () => onSelect(row) : undefined} aria-expanded={onSelect ? isExpanded : undefined}>{columns.map((column) => <td key={column.key}>{column.render ? column.render(row) : display(row[column.key])}</td>)}</tr>
+      {isExpanded ? <tr className="admin-console-expanded-row"><td colSpan={columns.length}>{expandedContent?.(row)}</td></tr> : null}
+    </Fragment>;
+  }) : <tr><td colSpan={columns.length} className="admin-console-empty">{empty}</td></tr>}</tbody></table></div>;
 }
 
 function SummaryCard({ label, value, detail }) {
   return <article className="admin-summary-card"><span>{label}</span><strong>{display(value)}</strong><small>{detail}</small></article>;
+}
+
+function OverviewPanel({ title, description, columns, rows, onSelect, expandedId, expandedContent, empty, onRefresh, loading, wide = false }) {
+  return <section className={`admin-console-panel admin-console-overview-panel${wide ? ' is-wide' : ''}`}><div className="admin-console-panel-heading"><div><h2>{title}</h2><p>{description}</p></div><button className="admin-console-secondary" type="button" onClick={onRefresh} disabled={loading}>Refresh</button></div><Table columns={columns} rows={rows} onSelect={onSelect} expandedId={expandedId} expandedContent={expandedContent} empty={empty} /></section>;
 }
 
 function DetailField({ label, value }) {
@@ -183,6 +195,7 @@ function DetailField({ label, value }) {
 function Console({ admin, onLogout }) {
   const [section, setSection] = useState('overview');
   const [summary, setSummary] = useState(null);
+  const [overviewLists, setOverviewLists] = useState({ activeTrips: [], activeSupportTickets: [], recentAudit: [] });
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -196,42 +209,94 @@ function Console({ admin, onLogout }) {
   const [supportReply, setSupportReply] = useState('');
   const [supportReason, setSupportReason] = useState('');
   const [newAdmin, setNewAdmin] = useState({ username: '', email: '', password: '' });
+  const requestSequence = useRef(0);
+  const detailSequence = useRef(0);
+
+  const closeDetail = () => {
+    detailSequence.current += 1;
+    setSelected(null);
+    setDetailLoading(false);
+  };
 
   const loadData = useCallback(async () => {
+    const requestId = ++requestSequence.current;
     setLoading(true); setError('');
     try {
       if (section === 'overview') {
-        setSummary(await requestApi('/admin/dashboard/summary'));
+        const [nextSummary, publishedTrips, inProgressTrips, openSupport, recentAudit] = await Promise.all([
+          requestApi('/admin/dashboard/summary'),
+          requestApi(`/admin/trips?limit=${OVERVIEW_LIST_LIMIT}&offset=0&status=PUBLISHED`),
+          requestApi(`/admin/trips?limit=${OVERVIEW_LIST_LIMIT}&offset=0&status=IN_PROGRESS`),
+          requestApi(`/admin/support/tickets?limit=${OVERVIEW_LIST_LIMIT}&offset=0&status=OPEN`),
+          requestApi(`/admin/audit?limit=${OVERVIEW_LIST_LIMIT}&offset=0`),
+        ]);
+        const activeTrips = Array.from(new Map([...(publishedTrips?.items || []), ...(inProgressTrips?.items || [])].map((trip) => [trip.id || trip.publicId, trip])).values())
+          .sort((left, right) => new Date(left.departureAt).getTime() - new Date(right.departureAt).getTime())
+          .slice(0, OVERVIEW_LIST_LIMIT);
+        if (requestId === requestSequence.current) {
+          setSummary(nextSummary);
+          setOverviewLists({ activeTrips, activeSupportTickets: openSupport?.items || [], recentAudit: recentAudit?.items || [] });
+        }
         return;
       }
       if (section === 'admins') {
         const result = await requestApi('/admin/users');
-        setRows(result?.users || []); setTotal(result?.users?.length || 0);
+        if (requestId === requestSequence.current) { setRows(result?.users || []); setTotal(result?.users?.length || 0); }
         return;
       }
       const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) });
       Object.entries(appliedFilters).forEach(([key, value]) => { if (value) params.set(key, value); });
       const endpoint = section === 'members' ? '/admin/members' : section === 'trips' ? '/admin/trips' : section === 'bookings' ? '/admin/bookings' : section === 'support' ? '/admin/support/tickets' : '/admin/audit';
       const result = await requestApi(`${endpoint}?${params.toString()}`);
-      setRows(result?.items || []); setTotal(result?.total || 0);
+      if (requestId === requestSequence.current) { setRows(result?.items || []); setTotal(result?.total || 0); }
     } catch (requestError) {
-      setError(errorText(requestError));
-    } finally { setLoading(false); }
+      if (requestId === requestSequence.current) setError(errorText(requestError));
+    } finally { if (requestId === requestSequence.current) setLoading(false); }
   }, [appliedFilters, page, section]);
 
   useEffect(() => { loadData(); }, [loadData]);
-  useEffect(() => { setPage(0); setSelected(null); setAppliedFilters({}); setFilters({}); setNotice(''); }, [section]);
+  useEffect(() => {
+    setPage(0); closeDetail(); setAppliedFilters({}); setFilters({}); setNotice('');
+    if (section === 'overview') {
+      setSummary(null);
+      setOverviewLists({ activeTrips: [], activeSupportTickets: [], recentAudit: [] });
+    }
+  }, [section]);
+  useEffect(() => {
+    if (section === 'overview' || section === 'admins') return undefined;
+    const timer = setTimeout(() => { setPage(0); setAppliedFilters({ ...filters }); }, 250);
+    return () => clearTimeout(timer);
+  }, [filters, section]);
 
   const openDetail = async (kind, row) => {
-    if (!row?.id) return;
+    const rowId = row?.id || row?.publicId;
+    if (!rowId) return;
+    const detailRequestId = ++detailSequence.current;
+    setSelected({ kind, rowId, data: null });
     setDetailLoading(true); setError('');
     try {
-      const endpoint = kind === 'member' ? `/admin/members/${row.id}` : kind === 'trip' ? `/admin/trips/${row.id}` : kind === 'booking' ? `/admin/bookings/${row.id}` : `/admin/support/tickets/${row.id}`;
+      const endpoint = kind === 'member' ? `/admin/members/${rowId}` : kind === 'trip' ? `/admin/trips/${rowId}` : kind === 'booking' ? `/admin/bookings/${rowId}` : `/admin/support/tickets/${rowId}`;
       const result = await requestApi(endpoint);
-      setSelected({ kind, data: result?.member || result?.trip || result?.booking || result?.ticket });
+      const data = result?.member || result?.trip || result?.booking || result?.ticket;
+      if (!data) throw new Error('The selected record was not found.');
+      if (detailRequestId === detailSequence.current) setSelected({ kind, rowId, data });
       setSupportReply(''); setSupportReason('');
-    } catch (requestError) { setError(errorText(requestError)); }
-    finally { setDetailLoading(false); }
+    } catch (requestError) {
+      if (detailRequestId === detailSequence.current) {
+        setSelected(null);
+        setError(errorText(requestError));
+      }
+    } finally { if (detailRequestId === detailSequence.current) setDetailLoading(false); }
+  };
+
+  const toggleDetail = (kind, row) => {
+    const rowId = row?.id || row?.publicId;
+    if (!rowId) return;
+    if (selected?.kind === kind && String(selected.rowId) === String(rowId)) {
+      closeDetail();
+      return;
+    }
+    void openDetail(kind, row);
   };
 
   const reloadSelectedSupport = async () => {
@@ -280,11 +345,12 @@ function Console({ admin, onLogout }) {
 
   const renderDetail = () => {
     if (!selected) return null;
+    if (!selected.data) return <div className="admin-console-detail admin-console-detail-loading">{detailLoading ? 'Loading details…' : 'Details unavailable.'}</div>;
     const data = selected.data;
-    if (selected.kind === 'member') return <aside className="admin-console-detail"><DetailHeader title="Member detail" onClose={() => setSelected(null)} /><dl className="admin-detail-grid"><DetailField label="Name" value={data.name} /><DetailField label="Member ID" value={data.id} /><DetailField label="Mobile" value={data.mobile} /><DetailField label="Personal email" value={data.personalEmail} /><DetailField label="Personal email status" value={data.personalEmailStatus} /><DetailField label="Work email" value={data.workEmail} /><DetailField label="Work email status" value={data.workEmailStatus} /><DetailField label="Account status" value={data.status} /><DetailField label="Created" value={formatDate(data.createdAt)} /></dl><h3>Vehicles</h3><Table columns={[{ key: 'registrationNumber', label: 'Registration' }, { key: 'make', label: 'Vehicle', render: (row) => `${row.make} ${row.model}` }, { key: 'verificationStatus', label: 'Verification' }, { key: 'status', label: 'Status' }]} rows={data.vehicles || []} empty="No vehicles recorded." /></aside>;
-    if (selected.kind === 'trip') return <aside className="admin-console-detail"><DetailHeader title={`Trip ${display(data.publicId)}`} onClose={() => setSelected(null)} /><dl className="admin-detail-grid"><DetailField label="Route" value={`${data.origin} → ${data.destination}`} /><DetailField label="Driver" value={data.driverName} /><DetailField label="Departure" value={formatDate(data.departureAt)} /><DetailField label="Status" value={data.status} /><DetailField label="Seats" value={`${data.seatsTotal - data.seatsAvailable}/${data.seatsTotal} booked`} /><DetailField label="Booking mode" value={data.bookingMode} /><DetailField label="Fare" value={`${data.pricePerSeat} ${data.currency || 'INR'}`} /><DetailField label="Cancellation" value={data.cancellationReason} /></dl><h3>Bookings</h3><Table columns={[{ key: 'publicId', label: 'Reference' }, { key: 'status', label: 'Status' }, { key: 'passengerCount', label: 'Passengers' }, { key: 'totalPrice', label: 'Total' }]} rows={data.bookings || []} empty="No bookings recorded." /></aside>;
-    if (selected.kind === 'booking') return <aside className="admin-console-detail"><DetailHeader title={`Booking ${display(data.publicId)}`} onClose={() => setSelected(null)} /><dl className="admin-detail-grid"><DetailField label="Trip" value={data.tripPublicId} /><DetailField label="Route" value={data.route} /><DetailField label="Booker" value={data.bookedByName} /><DetailField label="Status" value={data.status} /><DetailField label="Passengers" value={data.passengerCount} /><DetailField label="Total" value={`${data.totalPrice} ${data.currency}`} /><DetailField label="Payment" value={data.paymentStatus} /><DetailField label="Pickup" value={data.pickup?.label} /><DetailField label="Drop" value={data.drop?.label} /><DetailField label="Created" value={formatDate(data.createdAt)} /></dl><h3>Traveller snapshot</h3><Table columns={[{ key: 'name', label: 'Name' }, { key: 'ageBucket', label: 'Age' }, { key: 'gender', label: 'Gender' }]} rows={data.passengers || []} empty="No traveller rows." /><h3>Booking events</h3><Table columns={[{ key: 'occurredAt', label: 'Time', render: (row) => formatDate(row.occurredAt) }, { key: 'fromStatus', label: 'From' }, { key: 'toStatus', label: 'To' }, { key: 'actorRole', label: 'Actor' }]} rows={data.events || []} empty="No events recorded." /></aside>;
-    if (selected.kind === 'support') return <aside className="admin-console-detail"><DetailHeader title={`${display(data.publicId)} · ${display(data.subject)}`} onClose={() => setSelected(null)} /><dl className="admin-detail-grid"><DetailField label="Requester" value={data.requesterName} /><DetailField label="Requester email" value={data.requesterEmail} /><DetailField label="Category" value={data.category} /><DetailField label="Status" value={data.status} /><DetailField label="Updated" value={formatDate(data.updatedAt)} /></dl><div className="admin-support-messages">{(data.messages || []).map((message) => <div className={`admin-support-message ${message.senderRole === 'SUPPORT' || message.senderAdminUserId ? 'is-admin' : ''}`} key={message.id}><strong>{message.senderRole}</strong><time>{formatDate(message.createdAt)}</time><p>{message.text}</p></div>)}</div><form className="admin-console-form" onSubmit={sendSupportReply}><label>Reply<textarea value={supportReply} onChange={(event) => setSupportReply(event.target.value)} maxLength={2000} rows={4} required /></label><button className="admin-console-primary" type="submit">Send reply</button></form><div className="admin-support-actions"><input value={supportReason} onChange={(event) => setSupportReason(event.target.value)} placeholder="Reason for status change" maxLength={500} />{data.status === 'OPEN' ? <button className="admin-console-danger" type="button" onClick={() => updateSupport('CLOSED')}>Close ticket</button> : <button className="admin-console-secondary" type="button" onClick={() => updateSupport('OPEN')}>Reopen ticket</button>}</div></aside>;
+    if (selected.kind === 'member') return <aside className="admin-console-detail"><DetailHeader title="Member detail" onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Name" value={data.name} /><DetailField label="Member ID" value={data.id} /><DetailField label="Mobile" value={data.mobile} /><DetailField label="Personal email" value={data.personalEmail} /><DetailField label="Personal email status" value={data.personalEmailStatus} /><DetailField label="Work email" value={data.workEmail} /><DetailField label="Work email status" value={data.workEmailStatus} /><DetailField label="Account status" value={data.status} /><DetailField label="Created" value={formatDate(data.createdAt)} /></dl><h3>Vehicles</h3><Table columns={[{ key: 'registrationNumber', label: 'Registration' }, { key: 'make', label: 'Vehicle', render: (row) => `${row.make} ${row.model}` }, { key: 'verificationStatus', label: 'Verification' }, { key: 'status', label: 'Status' }]} rows={data.vehicles || []} empty="No vehicles recorded." /></aside>;
+    if (selected.kind === 'trip') return <aside className="admin-console-detail"><DetailHeader title={`Trip ${display(data.publicId)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Route" value={`${data.origin} → ${data.destination}`} /><DetailField label="Driver" value={data.driverName} /><DetailField label="Departure" value={formatDate(data.departureAt)} /><DetailField label="Status" value={data.status} /><DetailField label="Seats" value={`${data.seatsTotal - data.seatsAvailable}/${data.seatsTotal} booked`} /><DetailField label="Booking mode" value={data.bookingMode} /><DetailField label="Fare" value={`${data.pricePerSeat} ${data.currency || 'INR'}`} /><DetailField label="Cancellation" value={data.cancellationReason} /></dl><h3>Bookings</h3><Table columns={[{ key: 'publicId', label: 'Reference' }, { key: 'status', label: 'Status' }, { key: 'passengerCount', label: 'Passengers' }, { key: 'totalPrice', label: 'Total' }]} rows={data.bookings || []} empty="No bookings recorded." /></aside>;
+    if (selected.kind === 'booking') return <aside className="admin-console-detail"><DetailHeader title={`Booking ${display(data.publicId)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Trip" value={data.tripPublicId} /><DetailField label="Route" value={data.route} /><DetailField label="Booker" value={data.bookedByName} /><DetailField label="Status" value={data.status} /><DetailField label="Passengers" value={data.passengerCount} /><DetailField label="Total" value={`${data.totalPrice} ${data.currency}`} /><DetailField label="Payment" value={data.paymentStatus} /><DetailField label="Pickup" value={data.pickup?.label} /><DetailField label="Drop" value={data.drop?.label} /><DetailField label="Created" value={formatDate(data.createdAt)} /></dl><h3>Traveller snapshot</h3><Table columns={[{ key: 'name', label: 'Name' }, { key: 'ageBucket', label: 'Age' }, { key: 'gender', label: 'Gender' }]} rows={data.passengers || []} empty="No traveller rows." /><h3>Booking events</h3><Table columns={[{ key: 'occurredAt', label: 'Time', render: (row) => formatDate(row.occurredAt) }, { key: 'fromStatus', label: 'From' }, { key: 'toStatus', label: 'To' }, { key: 'actorRole', label: 'Actor' }]} rows={data.events || []} empty="No events recorded." /></aside>;
+    if (selected.kind === 'support') return <aside className="admin-console-detail"><DetailHeader title={`${display(data.publicId)} · ${display(data.subject)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Requester" value={data.requesterName} /><DetailField label="Requester email" value={data.requesterEmail} /><DetailField label="Category" value={data.category} /><DetailField label="Status" value={data.status} /><DetailField label="Updated" value={formatDate(data.updatedAt)} /></dl><div className="admin-support-messages">{(data.messages || []).map((message) => <div className={`admin-support-message ${message.senderRole === 'SUPPORT' || message.senderAdminUserId ? 'is-admin' : ''}`} key={message.id}><strong>{message.senderRole}</strong><time>{formatDate(message.createdAt)}</time><p>{message.text}</p></div>)}</div><form className="admin-console-form" onSubmit={sendSupportReply}><label>Reply<textarea value={supportReply} onChange={(event) => setSupportReply(event.target.value)} maxLength={2000} rows={4} required /></label><button className="admin-console-primary" type="submit">Send reply</button></form><div className="admin-support-actions"><input value={supportReason} onChange={(event) => setSupportReason(event.target.value)} placeholder="Reason for status change" maxLength={500} />{data.status === 'OPEN' ? <button className="admin-console-danger" type="button" onClick={() => updateSupport('CLOSED')}>Close ticket</button> : <button className="admin-console-secondary" type="button" onClick={() => updateSupport('OPEN')}>Reopen ticket</button>}</div></aside>;
     return null;
   };
 
@@ -300,7 +366,9 @@ function Console({ admin, onLogout }) {
             ? [{ key: 'createdAt', label: 'Time', render: (row) => formatDate(row.createdAt) }, { key: 'action', label: 'Action' }, { key: 'resourceType', label: 'Resource' }, { key: 'resourceId', label: 'Resource ID' }, { key: 'reason', label: 'Reason' }]
             : [{ key: 'username', label: 'Username' }, { key: 'email', label: 'Email' }, { key: 'role', label: 'Role' }, { key: 'status', label: 'Status' }, { key: 'createdAt', label: 'Created', render: (row) => formatDate(row.createdAt) }, { key: 'actions', label: 'Actions', render: (row) => <span className="admin-table-actions"><button className="admin-console-link" type="button" onClick={(event) => { event.stopPropagation(); updateAdmin(row, row.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'); }}>{row.status === 'ACTIVE' ? 'Disable' : 'Enable'}</button></span> }];
 
-  const selectRow = section === 'members' ? (row) => openDetail('member', row) : section === 'trips' ? (row) => openDetail('trip', row) : section === 'bookings' ? (row) => openDetail('booking', row) : section === 'support' ? (row) => openDetail('support', row) : undefined;
+  const detailKind = section === 'members' ? 'member' : section === 'trips' ? 'trip' : section === 'bookings' ? 'booking' : section === 'support' ? 'support' : null;
+  const selectRow = detailKind ? (row) => toggleDetail(detailKind, row) : undefined;
+  const expandedId = detailKind && selected?.kind === detailKind ? selected.rowId : null;
 
   return (
     <main className="admin-console-page">
@@ -314,13 +382,19 @@ function Console({ admin, onLogout }) {
           <header className="admin-console-header"><div><p className="admin-console-kicker">Operations</p><h1>{SECTIONS.find((item) => item.id === section)?.label}</h1></div><div className="admin-console-identity">{display(admin?.username)} · {display(admin?.role)}</div></header>
           {error ? <div className="admin-console-banner admin-console-error" role="alert">{error}</div> : null}
           {notice ? <div className="admin-console-banner admin-console-success" role="status">{notice}</div> : null}
-          {section === 'overview' && summary ? <div className="admin-summary-grid"><SummaryCard label="Members" value={summary.members?.total} detail={`${display(summary.members?.active)} active`} /><SummaryCard label="Trips" value={summary.trips?.total} detail={`${display(summary.trips?.published)} published`} /><SummaryCard label="Bookings" value={summary.bookings?.total} detail={`${display(summary.bookings?.confirmed)} confirmed`} /><SummaryCard label="Support" value={summary.support?.open} detail="Open tickets" /><SummaryCard label="Admin users" value={summary.admins?.active} detail="Active accounts" /></div> : null}
-          {section !== 'overview' && section !== 'admins' ? <FilterBar section={section} filters={filters} setFilters={setFilters} onSubmit={(event) => { event.preventDefault(); setPage(0); setAppliedFilters({ ...filters }); }} /> : null}
+          {section === 'overview' && summary ? <>
+            <div className="admin-summary-grid"><SummaryCard label="Members" value={summary.members?.total} detail={`${display(summary.members?.active)} active`} /><SummaryCard label="Active trips" value={(summary.trips?.published || 0) + (summary.trips?.inProgress || 0)} detail="Published or in progress" /><SummaryCard label="Bookings" value={summary.bookings?.total} detail={`${display(summary.bookings?.confirmed)} confirmed`} /><SummaryCard label="Active support" value={summary.support?.open} detail="Open tickets" /><SummaryCard label="Admin users" value={summary.admins?.active} detail="Active accounts" /></div>
+            <div className="admin-console-overview-grid">
+              <OverviewPanel title="Active trips" description="Published and in-progress trips." columns={[{ key: 'publicId', label: 'Reference' }, { key: 'origin', label: 'Route', render: (row) => `${row.origin} → ${row.destination}` }, { key: 'driverName', label: 'Driver' }, { key: 'departureAt', label: 'Departure', render: (row) => formatDate(row.departureAt) }, { key: 'status', label: 'Status' }]} rows={overviewLists.activeTrips} onSelect={(row) => toggleDetail('trip', row)} expandedId={selected?.kind === 'trip' ? selected.rowId : null} expandedContent={renderDetail} empty="No active trips." onRefresh={loadData} loading={loading} />
+              <OverviewPanel title="Active support tickets" description="Open tickets that need a response." columns={[{ key: 'publicId', label: 'Reference' }, { key: 'subject', label: 'Subject' }, { key: 'requesterName', label: 'Requester' }, { key: 'category', label: 'Category' }, { key: 'updatedAt', label: 'Updated', render: (row) => formatDate(row.updatedAt) }]} rows={overviewLists.activeSupportTickets} onSelect={(row) => toggleDetail('support', row)} expandedId={selected?.kind === 'support' ? selected.rowId : null} expandedContent={renderDetail} empty="No active support tickets." onRefresh={loadData} loading={loading} />
+              <OverviewPanel title="Recent audit log" description="The latest administrator actions." columns={[{ key: 'createdAt', label: 'Time', render: (row) => formatDate(row.createdAt) }, { key: 'action', label: 'Action' }, { key: 'resourceType', label: 'Resource' }, { key: 'resourceId', label: 'Resource ID' }, { key: 'reason', label: 'Reason' }]} rows={overviewLists.recentAudit} empty="No audit entries." onRefresh={loadData} loading={loading} wide />
+            </div>
+          </> : null}
+          {section === 'overview' && !summary && loading ? <p className="admin-console-loading-inline">Loading overview…</p> : null}
+          {section !== 'overview' && section !== 'admins' ? <FilterBar section={section} filters={filters} setFilters={setFilters} /> : null}
           {section === 'admins' ? <form className="admin-console-create-form" onSubmit={createAdmin}><strong>Create admin user</strong><input placeholder="Username" value={newAdmin.username} onChange={(event) => setNewAdmin({ ...newAdmin, username: event.target.value })} required /><input placeholder="Email" type="email" value={newAdmin.email} onChange={(event) => setNewAdmin({ ...newAdmin, email: event.target.value })} /><input placeholder="Temporary password" type="password" minLength={12} value={newAdmin.password} onChange={(event) => setNewAdmin({ ...newAdmin, password: event.target.value })} required /><button className="admin-console-primary" type="submit">Create</button></form> : null}
           {section === 'overview' ? <section className="admin-console-panel"><h2>Operational queues</h2><p>Use the sections on the left to inspect members, trips, bookings, support tickets, admin users, and audit records.</p></section> : null}
-          {section !== 'overview' ? <section className="admin-console-panel"><div className="admin-console-panel-heading"><div><h2>{SECTIONS.find((item) => item.id === section)?.label}</h2><p>{loading ? 'Loading…' : 'Select a row to inspect details.'}</p></div><button className="admin-console-secondary" type="button" onClick={loadData} disabled={loading}>Refresh</button></div><Table columns={columns} rows={rows} onSelect={selectRow} />{section !== 'admins' ? <Pagination page={page} total={total} onChange={(nextPage) => { setPage(nextPage); setSelected(null); }} /> : null}</section> : null}
-          {detailLoading ? <p className="admin-console-loading">Loading details…</p> : null}
-          {renderDetail()}
+          {section !== 'overview' ? <section className="admin-console-panel"><div className="admin-console-panel-heading"><div><h2>{SECTIONS.find((item) => item.id === section)?.label}</h2><p>{loading ? 'Loading…' : detailKind ? 'Select a row to expand details.' : 'Review the latest records.'}</p></div><button className="admin-console-secondary" type="button" onClick={loadData} disabled={loading}>Refresh</button></div><Table columns={columns} rows={rows} onSelect={selectRow} expandedId={expandedId} expandedContent={renderDetail} />{section !== 'admins' ? <Pagination page={page} total={total} onChange={(nextPage) => { setPage(nextPage); closeDetail(); }} /> : null}</section> : null}
         </section>
       </div>
     </main>

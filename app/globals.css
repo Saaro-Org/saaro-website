@@ -1501,6 +1501,9 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
 .admin-console-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
 .admin-console-panel h2 { margin: 0; font-size: 19px; }
 .admin-console-panel-heading p { margin: 4px 0 0; color: #687887; font-size: 13px; }
+.admin-console-overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.admin-console-overview-panel { min-width: 0; margin-top: 20px; }
+.admin-console-overview-panel.is-wide { grid-column: 1 / -1; }
 .admin-summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .admin-summary-card { display: grid; gap: 8px; padding: 16px; border: 1px solid #dce2e7; border-radius: 7px; background: #fff; }
 .admin-summary-card span, .admin-summary-card small { color: #687887; font-size: 12px; }
@@ -1522,13 +1525,16 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
 .admin-console-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .admin-console-table th, .admin-console-table td { padding: 11px 9px; border-bottom: 1px solid #e5e9ed; text-align: left; vertical-align: top; white-space: nowrap; }
 .admin-console-table th { color: #687887; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
-.admin-console-table tbody tr[onClick], .admin-console-table tbody tr { cursor: pointer; }
+.admin-console-table tbody tr.admin-console-selectable-row { cursor: pointer; }
 .admin-console-table tbody tr:hover { background: #f6f8fa; }
+.admin-console-table tbody tr.admin-console-expanded-row:hover { background: transparent; }
+.admin-console-expanded-row > td { padding: 0; background: #f8fafb; }
 .admin-console-empty { padding: 32px 10px !important; color: #687887; text-align: center !important; }
 .admin-table-actions { display: inline-flex; gap: 8px; }
 .admin-console-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; color: #687887; font-size: 13px; }
 .admin-console-pagination > div { display: flex; align-items: center; gap: 10px; }
 .admin-console-detail { margin-top: 20px; padding: 18px; border: 1px solid #b9c6d0; border-radius: 7px; background: #fff; }
+.admin-console-detail-loading { color: #687887; }
 .admin-console-detail-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .admin-console-detail-header h2 { margin: 0; font-size: 19px; }
 .admin-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 20px; }
@@ -1551,6 +1557,7 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
 .admin-console-error { color: #b42318; background: #fef3f2; }
 .admin-console-success { color: #067647; background: #ecfdf3; }
 .admin-console-loading { display: grid; place-items: center; min-height: 100vh; color: #607080; }
+.admin-console-loading-inline { margin: 24px 0; color: #687887; }
 .admin-auth-page { display: grid; place-items: center; min-height: 100vh; padding: 24px; background: #f3f5f7; color: #17212b; font-family: var(--body); }
 .admin-auth-card { width: min(100%, 430px); padding: 28px; border: 1px solid #dce2e7; border-radius: 7px; background: #fff; }
 .admin-auth-card h1 { margin: 8px 0 4px; font-size: 28px; }
@@ -1570,6 +1577,8 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
   .admin-console-main { padding: 18px; }
   .admin-console-header { flex-direction: column; }
   .admin-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-console-overview-grid { grid-template-columns: 1fr; }
+  .admin-console-overview-panel.is-wide { grid-column: auto; }
   .admin-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-console-pagination, .admin-support-actions { align-items: stretch; flex-direction: column; }
   .admin-console-pagination > div { justify-content: space-between; }
