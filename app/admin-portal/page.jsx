@@ -5,6 +5,8 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 const API_BASE_URL = (process.env.NEXT_PUBLIC_FLUXGO_API_URL || '').replace(/\/+$/, '');
 const PAGE_SIZE = 25;
 const OVERVIEW_LIST_LIMIT = 8;
+const CONSOLE_REFRESH_INTERVAL_MS = 10000;
+const SUPPORT_DETAIL_REFRESH_INTERVAL_MS = 4000;
 
 const SECTIONS = [
   { id: 'overview', label: 'Overview' },
@@ -218,9 +220,9 @@ function Console({ admin, onLogout }) {
     setDetailLoading(false);
   };
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async ({ silent = false } = {}) => {
     const requestId = ++requestSequence.current;
-    setLoading(true); setError('');
+    if (!silent) { setLoading(true); setError(''); }
     try {
       if (section === 'overview') {
         const [nextSummary, publishedTrips, inProgressTrips, openSupport, recentAudit] = await Promise.all([
@@ -250,11 +252,17 @@ function Console({ admin, onLogout }) {
       const result = await requestApi(`${endpoint}?${params.toString()}`);
       if (requestId === requestSequence.current) { setRows(result?.items || []); setTotal(result?.total || 0); }
     } catch (requestError) {
-      if (requestId === requestSequence.current) setError(errorText(requestError));
+      if (requestId === requestSequence.current && !silent) setError(errorText(requestError));
     } finally { if (requestId === requestSequence.current) setLoading(false); }
   }, [appliedFilters, page, section]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { void loadData(); }, [loadData]);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void loadData({ silent: true });
+    }, CONSOLE_REFRESH_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [loadData]);
   useEffect(() => {
     setPage(0); closeDetail(); setAppliedFilters({}); setFilters({}); setNotice('');
     if (section === 'overview') {
@@ -267,6 +275,45 @@ function Console({ admin, onLogout }) {
     const timer = setTimeout(() => { setPage(0); setAppliedFilters({ ...filters }); }, 250);
     return () => clearTimeout(timer);
   }, [filters, section]);
+
+  useEffect(() => {
+    const kind = selected?.kind;
+    const recordId = selected?.data?.id;
+    if (!kind || !recordId || (kind === 'support' && selected.data.status !== 'OPEN')) return undefined;
+    const detailConfig = {
+      member: { path: `/admin/members/${recordId}`, key: 'member' },
+      trip: { path: `/admin/trips/${recordId}`, key: 'trip' },
+      booking: { path: `/admin/bookings/${recordId}`, key: 'booking' },
+      support: { path: `/admin/support/tickets/${recordId}`, key: 'ticket' },
+    }[kind];
+    if (!detailConfig) return undefined;
+    let active = true;
+    let refreshInFlight = false;
+    const refreshSelectedDetail = async () => {
+      if (refreshInFlight) return;
+      refreshInFlight = true;
+      try {
+        const result = await requestApi(detailConfig.path);
+        const data = result?.[detailConfig.key];
+        if (!active || !data) return;
+        setSelected((current) => {
+          if (!current || current.kind !== kind || (String(current.rowId) !== String(recordId) && String(current.data?.id) !== String(recordId))) return current;
+          return { ...current, data };
+        });
+        setRows((current) => current.map((row) => String(row.id || row.publicId) === String(recordId)
+          ? { ...row, ...data }
+          : row));
+        if (kind === 'support' && data.status !== 'OPEN') void loadData({ silent: true });
+      } catch {
+        // Keep the current detail when one background refresh fails.
+      } finally {
+        refreshInFlight = false;
+      }
+    };
+    const refreshInterval = kind === 'support' ? SUPPORT_DETAIL_REFRESH_INTERVAL_MS : CONSOLE_REFRESH_INTERVAL_MS;
+    const timer = setInterval(() => { void refreshSelectedDetail(); }, refreshInterval);
+    return () => { active = false; clearInterval(timer); };
+  }, [loadData, selected?.data?.id, selected?.data?.status, selected?.kind]);
 
   const openDetail = async (kind, row) => {
     const rowId = row?.id || row?.publicId;
@@ -350,7 +397,7 @@ function Console({ admin, onLogout }) {
     if (selected.kind === 'member') return <aside className="admin-console-detail"><DetailHeader title="Member detail" onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Name" value={data.name} /><DetailField label="Member ID" value={data.id} /><DetailField label="Mobile" value={data.mobile} /><DetailField label="Personal email" value={data.personalEmail} /><DetailField label="Personal email status" value={data.personalEmailStatus} /><DetailField label="Work email" value={data.workEmail} /><DetailField label="Work email status" value={data.workEmailStatus} /><DetailField label="Account status" value={data.status} /><DetailField label="Created" value={formatDate(data.createdAt)} /></dl><h3>Vehicles</h3><Table columns={[{ key: 'registrationNumber', label: 'Registration' }, { key: 'make', label: 'Vehicle', render: (row) => `${row.make} ${row.model}` }, { key: 'verificationStatus', label: 'Verification' }, { key: 'status', label: 'Status' }]} rows={data.vehicles || []} empty="No vehicles recorded." /></aside>;
     if (selected.kind === 'trip') return <aside className="admin-console-detail"><DetailHeader title={`Trip ${display(data.publicId)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Route" value={`${data.origin} → ${data.destination}`} /><DetailField label="Driver" value={data.driverName} /><DetailField label="Departure" value={formatDate(data.departureAt)} /><DetailField label="Status" value={data.status} /><DetailField label="Seats" value={`${data.seatsTotal - data.seatsAvailable}/${data.seatsTotal} booked`} /><DetailField label="Booking mode" value={data.bookingMode} /><DetailField label="Fare" value={`${data.pricePerSeat} ${data.currency || 'INR'}`} /><DetailField label="Cancellation" value={data.cancellationReason} /></dl><h3>Bookings</h3><Table columns={[{ key: 'publicId', label: 'Reference' }, { key: 'status', label: 'Status' }, { key: 'passengerCount', label: 'Passengers' }, { key: 'totalPrice', label: 'Total' }]} rows={data.bookings || []} empty="No bookings recorded." /></aside>;
     if (selected.kind === 'booking') return <aside className="admin-console-detail"><DetailHeader title={`Booking ${display(data.publicId)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Trip" value={data.tripPublicId} /><DetailField label="Route" value={data.route} /><DetailField label="Booker" value={data.bookedByName} /><DetailField label="Status" value={data.status} /><DetailField label="Passengers" value={data.passengerCount} /><DetailField label="Total" value={`${data.totalPrice} ${data.currency}`} /><DetailField label="Payment" value={data.paymentStatus} /><DetailField label="Pickup" value={data.pickup?.label} /><DetailField label="Drop" value={data.drop?.label} /><DetailField label="Created" value={formatDate(data.createdAt)} /></dl><h3>Traveller snapshot</h3><Table columns={[{ key: 'name', label: 'Name' }, { key: 'ageBucket', label: 'Age' }, { key: 'gender', label: 'Gender' }]} rows={data.passengers || []} empty="No traveller rows." /><h3>Booking events</h3><Table columns={[{ key: 'occurredAt', label: 'Time', render: (row) => formatDate(row.occurredAt) }, { key: 'fromStatus', label: 'From' }, { key: 'toStatus', label: 'To' }, { key: 'actorRole', label: 'Actor' }]} rows={data.events || []} empty="No events recorded." /></aside>;
-    if (selected.kind === 'support') return <aside className="admin-console-detail"><DetailHeader title={`${display(data.publicId)} · ${display(data.subject)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Requester" value={data.requesterName} /><DetailField label="Requester email" value={data.requesterEmail} /><DetailField label="Category" value={data.category} /><DetailField label="Status" value={data.status} /><DetailField label="Updated" value={formatDate(data.updatedAt)} /></dl><div className="admin-support-messages">{(data.messages || []).map((message) => <div className={`admin-support-message ${message.senderRole === 'SUPPORT' || message.senderAdminUserId ? 'is-admin' : ''}`} key={message.id}><strong>{message.senderRole}</strong><time>{formatDate(message.createdAt)}</time><p>{message.text}</p></div>)}</div><p className="admin-support-auto-close-note">Open tickets close automatically after 24 hours without activity.</p><form className="admin-console-form" onSubmit={sendSupportReply}><label>Reply<textarea value={supportReply} onChange={(event) => setSupportReply(event.target.value)} maxLength={2000} rows={4} required /></label><button className="admin-console-primary" type="submit">Send reply</button></form><div className="admin-support-actions"><input value={supportReason} onChange={(event) => setSupportReason(event.target.value)} placeholder="Reason for status change" maxLength={500} />{data.status === 'OPEN' ? <button className="admin-console-danger" type="button" onClick={() => updateSupport('CLOSED')}>Close ticket</button> : <button className="admin-console-secondary" type="button" onClick={() => updateSupport('OPEN')}>Reopen ticket</button>}</div></aside>;
+    if (selected.kind === 'support') return <aside className="admin-console-detail"><DetailHeader title={`${display(data.publicId)} · ${display(data.subject)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Requester" value={data.requesterName} /><DetailField label="Requester email" value={data.requesterEmail} /><DetailField label="Category" value={data.category} /><DetailField label="Status" value={data.status} /><DetailField label="Updated" value={formatDate(data.updatedAt)} /></dl><div className="admin-support-messages">{(data.messages || []).map((message) => <div className={`admin-support-message ${message.senderRole === 'SUPPORT' || message.senderAdminUserId ? 'is-admin' : ''}`} key={message.id}><strong>{message.senderRole}</strong><time>{formatDate(message.createdAt)}</time><p>{message.text}</p></div>)}</div><p className="admin-support-auto-close-note">Open tickets close automatically after 24 hours without activity.</p><p className="admin-support-live-note">New messages load automatically while this ticket is open.</p><form className="admin-console-form" onSubmit={sendSupportReply}><label>Reply<textarea value={supportReply} onChange={(event) => setSupportReply(event.target.value)} maxLength={2000} rows={4} required /></label><button className="admin-console-primary" type="submit">Send reply</button></form><div className="admin-support-actions"><input value={supportReason} onChange={(event) => setSupportReason(event.target.value)} placeholder="Reason for status change" maxLength={500} />{data.status === 'OPEN' ? <button className="admin-console-danger" type="button" onClick={() => updateSupport('CLOSED')}>Close ticket</button> : <button className="admin-console-secondary" type="button" onClick={() => updateSupport('OPEN')}>Reopen ticket</button>}</div></aside>;
     return null;
   };
 
@@ -379,7 +426,7 @@ function Console({ admin, onLogout }) {
           <button className="admin-console-sidebar-logout" type="button" onClick={logout}>Sign out</button>
         </aside>
         <section className="admin-console-main">
-          <header className="admin-console-header"><div><p className="admin-console-kicker">Operations</p><h1>{SECTIONS.find((item) => item.id === section)?.label}</h1></div><div className="admin-console-identity">{display(admin?.username)} · {display(admin?.role)}</div></header>
+          <header className="admin-console-header"><div><p className="admin-console-kicker">Operations</p><h1>{SECTIONS.find((item) => item.id === section)?.label}</h1><p className="admin-console-refresh-note">Data refreshes every 10 seconds. Open support conversations refresh every 4 seconds.</p></div><div className="admin-console-identity">{display(admin?.username)} · {display(admin?.role)}</div></header>
           {error ? <div className="admin-console-banner admin-console-error" role="alert">{error}</div> : null}
           {notice ? <div className="admin-console-banner admin-console-success" role="status">{notice}</div> : null}
           {section === 'overview' && summary ? <>
