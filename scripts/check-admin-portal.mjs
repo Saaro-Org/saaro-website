@@ -23,6 +23,7 @@ const requiredMarkers = [
   'status=PUBLISHED',
   'Active support tickets',
   'Recent audit log',
+  'Open tickets close automatically after 24 hours without activity.',
   'admin-console-expanded-row',
   'expandedId',
 ];
