@@ -27,13 +27,18 @@ Vercel detects Next.js from `package.json`. Add `fluxgo.in` as the custom domain
 
 ## Admin portal
 
-Open `/admin-portal` to use the operations portal.
+Open `/admin-portal` to use the operations console.
 
 The portal calls the backend admin routes with `credentials: include`. The
 backend owns the session in an HttpOnly cookie. The browser does not store an
 admin bearer token or password. Set `NEXT_PUBLIC_FLUXGO_API_URL` to the
 approved API origin, such as `http://127.0.0.1:3000` for local development or
 the deployed API origin for the hosted website.
+
+The console provides overview counts, member search and details, trip and
+booking inspection, support ticket replies and status changes, admin user
+management, and audit-log search. It uses real `/v1/admin` routes and does not
+use placeholder queue data.
 
 The reset form accepts the one-time code from the admin email. It also accepts
 `resetToken` in the URL query for a future email-link template.

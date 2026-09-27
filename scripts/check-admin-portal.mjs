@@ -13,7 +13,13 @@ const requiredMarkers = [
   "requestApi('/admin/auth/reset-password'",
   "credentials: 'include'",
   'HttpOnly session cookie',
-  'function Dashboard',
+  "requestApi('/admin/dashboard/summary'",
+  "'/admin/members'",
+  "'/admin/trips'",
+  "'/admin/bookings'",
+  "'/admin/support/tickets'",
+  "'/admin/audit'",
+  'function Console',
 ];
 
 const missing = requiredMarkers.filter((marker) => !page.includes(marker));
