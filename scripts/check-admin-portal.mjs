@@ -12,7 +12,6 @@ const requiredMarkers = [
   "requestApi('/admin/auth/request-password-reset'",
   "requestApi('/admin/auth/reset-password'",
   "credentials: 'include'",
-  'HttpOnly session cookie',
   "requestApi('/admin/dashboard/summary'",
   "'/admin/members'",
   "'/admin/trips'",
@@ -23,7 +22,6 @@ const requiredMarkers = [
   'status=PUBLISHED',
   'Active support tickets',
   'Recent audit log',
-  'Data refreshes every 10 seconds. Open support conversations refresh every 4 seconds.',
   'Open tickets close automatically after 24 hours without activity.',
   'New messages load automatically while this ticket is open.',
   'loadData({ silent: true })',
@@ -31,6 +29,14 @@ const requiredMarkers = [
   'setInterval(() => { void refreshSelectedDetail(); }, refreshInterval)',
   'admin-console-expanded-row',
   'expandedId',
+  'fluxgo-admin-session-expired',
+  'readConsoleUrlState',
+  'admin-status-badge',
+  'admin-console-confirmation',
+  'admin-console-filter-field',
+  'aria-busy',
+  'aria-expanded',
+  'lastUpdated',
 ];
 
 const missing = requiredMarkers.filter((marker) => !page.includes(marker));
