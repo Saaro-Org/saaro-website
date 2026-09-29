@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 export default function SupportPage() {
@@ -24,8 +25,7 @@ export default function SupportPage() {
       <header className="site-header" id="top">
         <div className="container nav-wrap">
           <Link className="brand" href="/" aria-label="Flux Go home">
-            <span className="brand-glyph" aria-hidden="true"><i /><i /></span>
-            <span className="brand-name">Flux <em>Go</em></span>
+            <Image className="brand-wordmark" src="/assets/fluxgo-wordmark.png" alt="Flux Go" width={423} height={126} priority />
           </Link>
 
           <nav className="primary-nav" aria-label="Primary navigation">
@@ -221,8 +221,7 @@ export default function SupportPage() {
       <footer className="site-footer support-footer">
         <div className="container footer-top">
           <Link className="brand brand-footer" href="/" aria-label="Flux Go home">
-            <span className="brand-glyph" aria-hidden="true"><i /><i /></span>
-            <span className="brand-name">Flux <em>Go</em></span>
+            <Image className="brand-wordmark" src="/assets/fluxgo-wordmark.png" alt="Flux Go" width={423} height={126} />
           </Link>
           <p>Reliable road sharing between cities.</p>
           <Link className="footer-up" href="#top">Back to top <span aria-hidden="true">↑</span></Link>

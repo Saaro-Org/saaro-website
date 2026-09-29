@@ -54,8 +54,7 @@ export default function Home() {
       <header className="site-header" id="top">
         <div className="container nav-wrap">
           <a className="brand" href="#top" aria-label="Flux Go home">
-            <span className="brand-glyph" aria-hidden="true"><i /><i /></span>
-            <span className="brand-name">Flux <em>Go</em></span>
+            <Image className="brand-wordmark" src="/assets/fluxgo-wordmark.png" alt="Flux Go" width={423} height={126} priority />
           </a>
 
           <nav className="primary-nav" aria-label="Primary navigation">
@@ -230,7 +229,7 @@ export default function Home() {
               <article className="process-card process-card-lime reveal">
                 <div className="card-topline"><span>01</span><span className="card-arrow" aria-hidden="true">↗</span></div>
                 <div className="process-art-wrap">
-                  <Image src="/assets/find-ride.png" alt="3D route marker for finding a ride" width={1254} height={1254} loading="lazy" />
+                  <Image src="/assets/fluxgo-find-ride-3d.png" alt="Flux Go route marker for finding a ride" width={512} height={508} loading="lazy" />
                 </div>
                 <h3>Find a ride</h3>
                 <p>Choose your route, date, and seats. Compare rides by time, price, and booking type.</p>
@@ -240,7 +239,7 @@ export default function Home() {
               <article className="process-card process-card-coral reveal reveal-delay-1">
                 <div className="card-topline"><span>02</span><span className="card-arrow" aria-hidden="true">↗</span></div>
                 <div className="process-art-wrap">
-                  <Image src="/assets/offer-ride.png" alt="3D car for offering a ride" width={1254} height={1254} loading="lazy" />
+                  <Image src="/assets/fluxgo-offer-ride-3d.png" alt="Flux Go car for offering a ride" width={512} height={411} loading="lazy" />
                 </div>
                 <h3>Offer a ride</h3>
                 <p>Set your route, seats, luggage space, and price. Keep the plan visible from publish to arrival.</p>
@@ -387,8 +386,7 @@ export default function Home() {
       <footer className="site-footer">
         <div className="container footer-top">
           <a className="brand brand-footer" href="#top" aria-label="Flux Go home">
-            <span className="brand-glyph" aria-hidden="true"><i /><i /></span>
-            <span className="brand-name">Flux <em>Go</em></span>
+            <Image className="brand-wordmark" src="/assets/fluxgo-wordmark.png" alt="Flux Go" width={423} height={126} />
           </a>
           <p>Reliable road sharing between cities.</p>
           <a className="footer-up" href="#top">Back to top <span aria-hidden="true">↑</span></a>

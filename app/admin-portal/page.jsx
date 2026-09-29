@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_FLUXGO_API_URL || '').replace(/\/+$/, '');
@@ -629,7 +630,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
     <main className="admin-console-page">
       <div className="admin-console-shell">
         <aside className="admin-console-sidebar">
-          <div className="admin-console-title"><strong>Flux Go</strong><span>Admin console</span></div>
+          <div className="admin-console-title"><Image src="/assets/fluxgo-wordmark.png" alt="Flux Go" width={423} height={126} priority /><span>Admin console</span></div>
           <nav aria-label="Admin sections">{SECTIONS.map((item) => <button key={item.id} className={section === item.id ? 'is-active' : ''} type="button" onClick={() => setSection(item.id)}>{item.label}</button>)}</nav>
           <button className="admin-console-sidebar-logout" type="button" onClick={logout} disabled={actionPending === 'logout'}>{actionPending === 'logout' ? 'Signing out…' : 'Sign out'}</button>
         </aside>

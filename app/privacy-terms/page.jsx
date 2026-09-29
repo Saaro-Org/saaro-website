@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 
 const TABS = [
   { id: 'privacy-policy', label: 'Privacy Policy', shortLabel: 'Privacy' },
@@ -343,6 +344,9 @@ export default function PrivacyTermsPage() {
 
       <header className="legal-header" id="top">
         <div className="legal-header-inner">
+          <a className="legal-brand" href="/" aria-label="Flux Go home">
+            <Image src="/assets/fluxgo-wordmark.png" alt="Flux Go" width={423} height={126} priority />
+          </a>
           <a className="legal-back-link" href="/" aria-label="Back to home">Go Back</a>
         </div>
       </header>
