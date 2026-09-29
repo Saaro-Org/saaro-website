@@ -2645,6 +2645,12 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
   .admin-console-filter-clear { margin-left: 0; }
 }
 
+/* Keep the Trips table readable when route and driver values vary in length. */
+.admin-console-table.admin-console-table--trips {
+  min-width: 1000px !important;
+  table-layout: fixed !important;
+}
+
 /* Keep the admin surface quiet. Use boundaries for data, controls, and safety states. */
 .admin-console-panel {
   padding-right: 0;
@@ -3832,12 +3838,16 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
 .admin-console-status.is-neutral { border-color: var(--line); color: var(--ink2); background: var(--fill); }
 
 /* Final admin visual pass. Keep only boundaries that improve scan, action, or safety. */
-/* Vachas reference alignment: calm canvas, light rail, orange actions, compact data surfaces. */
+/* Vachas reference alignment: calm canvas, light rail, Flux Go green actions, compact data surfaces. */
+.admin-console-page,
+.admin-auth-page {
+  --admin-ref-primary: var(--brand);
+  --admin-ref-primary-hover: var(--brand-deep);
+}
+
 .admin-console-page {
   --admin-ref-ink: #1F1F1F;
-  --admin-ref-nav: #1F1F1F;
-  --admin-ref-primary: #EE7A44;
-  --admin-ref-primary-hover: #D9632F;
+  --admin-ref-nav: var(--brand-hero);
   --admin-ref-canvas: #F5F5F5;
   --admin-ref-surface: #FFFFFF;
   --admin-ref-border: #E2E2E2;
@@ -3892,14 +3902,14 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
 .admin-console-sidebar nav button:hover,
 .admin-console-sidebar nav button:focus-visible,
 .admin-console-sidebar nav button.is-active {
-  background: #FDE8DE !important;
-  color: #B84F22 !important;
+  background: var(--brand-tint) !important;
+  color: var(--brand-deep) !important;
 }
 
 .admin-console-sidebar nav button::before { display: none !important; }
 .admin-console-sidebar nav button.is-active::before { display: block !important; width: 3px !important; height: 18px !important; top: 50% !important; right: auto !important; bottom: auto !important; left: 0 !important; border-radius: 4px !important; background: var(--admin-ref-primary) !important; transform: translateY(-50%) !important; }
 .admin-console-sidebar-logout { min-height: 40px !important; border-color: var(--admin-ref-border) !important; border-radius: 8px !important; color: var(--admin-ref-muted) !important; font-size: 12px !important; }
-.admin-console-sidebar-logout:hover { border-color: #D5B4A4 !important; background: #FFF7F3 !important; color: #B84F22 !important; }
+.admin-console-sidebar-logout:hover { border-color: var(--brand-edge) !important; background: var(--brand-tint) !important; color: var(--brand-deep) !important; }
 
 .admin-console-header {
   min-height: 64px !important;
@@ -3943,17 +3953,17 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
 .admin-console-create-form input:focus-visible,
 .admin-support-actions input:focus-visible,
 .admin-auth-form input:focus-visible,
-.admin-console-form textarea:focus-visible { border-color: var(--admin-ref-primary) !important; box-shadow: 0 0 0 3px rgba(238, 122, 68, 0.18) !important; }
+.admin-console-form textarea:focus-visible { border-color: var(--admin-ref-primary) !important; box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.18) !important; }
 
 .admin-console-primary,
 .admin-console-secondary,
 .admin-console-danger { min-height: 40px !important; border-radius: 8px !important; box-shadow: none !important; font-size: 12px !important; }
-.admin-console-primary { background: var(--admin-ref-primary) !important; color: var(--admin-ref-ink) !important; }
+.admin-console-primary { background: var(--admin-ref-primary) !important; color: var(--brand-on) !important; }
 .admin-console-primary:hover { background: var(--admin-ref-primary-hover) !important; }
 .admin-console-secondary { border-color: var(--admin-ref-border) !important; background: var(--admin-ref-surface) !important; color: var(--admin-ref-ink) !important; }
 .admin-console-secondary:hover { border-color: #B8B8B8 !important; background: #FAFAFA !important; }
 .admin-console-danger { background: var(--admin-ref-error) !important; color: #FFFFFF !important; }
-.admin-console-link { color: #B84F22 !important; }
+.admin-console-link { color: var(--brand-deep) !important; }
 
 .admin-console-table-wrap { border: 1px solid var(--admin-ref-border) !important; border-radius: 10px !important; background: var(--admin-ref-surface) !important; box-shadow: none !important; }
 .admin-console-table { min-width: 720px !important; color: var(--admin-ref-ink) !important; font-size: 12.5px !important; }
@@ -3961,7 +3971,7 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
 .admin-console-table td { height: 40px !important; padding: 7px 12px !important; border-bottom-color: var(--admin-ref-border) !important; }
 .admin-console-table th { background: var(--admin-ref-canvas) !important; color: var(--admin-ref-muted) !important; font-size: 10px !important; letter-spacing: 0.08em !important; }
 .admin-console-table tbody tr.admin-console-selectable-row:hover,
-.admin-console-table tbody tr.admin-console-selectable-row:focus-within { background: rgba(238, 122, 68, 0.07) !important; box-shadow: none !important; }
+.admin-console-table tbody tr.admin-console-selectable-row:focus-within { background: rgba(var(--brand-rgb), 0.07) !important; box-shadow: none !important; }
 .admin-console-expanded-row > td { background: #FAFAFA !important; }
 .admin-console-pagination { padding: 8px 12px 0 !important; font-size: 12px !important; }
 
@@ -3973,10 +3983,10 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
 .admin-detail-field dt { color: var(--admin-ref-muted) !important; font-size: 10px !important; }
 .admin-detail-field dd { font-size: 13px !important; }
 
-.admin-support-status-bar { margin-bottom: 16px !important; padding: 10px !important; border: 1px solid rgba(238, 122, 68, 0.42) !important; border-radius: 10px !important; background: #FDE8DE !important; }
+.admin-support-status-bar { margin-bottom: 16px !important; padding: 10px !important; border: 1px solid rgba(var(--brand-rgb), 0.42) !important; border-radius: 10px !important; background: var(--brand-tint) !important; }
 .admin-support-messages { padding: 10px !important; border: 1px solid var(--admin-ref-border) !important; border-radius: 10px !important; background: var(--admin-ref-canvas) !important; }
 .admin-support-message { padding: 10px 12px !important; border: 1px solid var(--admin-ref-border) !important; border-radius: 8px !important; background: var(--admin-ref-surface) !important; }
-.admin-support-message.is-admin { border-color: rgba(238, 122, 68, 0.38) !important; background: #FDE8DE !important; }
+.admin-support-message.is-admin { border-color: rgba(var(--brand-rgb), 0.38) !important; background: var(--brand-tint) !important; }
 
 .admin-auth-page {
   --admin-ref-ink: #1F1F1F;

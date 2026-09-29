@@ -9,6 +9,16 @@ const OVERVIEW_LIST_LIMIT = 8;
 const CONSOLE_REFRESH_INTERVAL_MS = 10000;
 const SUPPORT_DETAIL_REFRESH_INTERVAL_MS = 4000;
 
+const TRIPS_TABLE_COLUMN_WIDTHS = {
+  publicId: '13%',
+  origin: '26%',
+  driverName: '16%',
+  departureAt: '16%',
+  status: '12%',
+  bookingCount: '9%',
+  __view: '8%',
+};
+
 const SECTIONS = [
   { id: 'overview', label: 'Overview' },
   { id: 'members', label: 'Members' },
@@ -336,13 +346,14 @@ function Pagination({ page, total, onChange }) {
   return <nav className="admin-console-pagination" aria-label="Pagination"><span>{total} result{total === 1 ? '' : 's'}</span><div><button className="admin-console-secondary" type="button" aria-label="Previous page" disabled={!hasPrevious} onClick={() => onChange(page - 1)}>Previous</button><span aria-live="polite">Page {page + 1}</span><button className="admin-console-secondary" type="button" aria-label="Next page" disabled={!hasNext} onClick={() => onChange(page + 1)}>Next</button></div></nav>;
 }
 
-function Table({ columns, rows, onSelect, expandedId, expandedContent, empty = 'No records found.', loading = false, label = 'Records' }) {
+function Table({ columns, rows, onSelect, expandedId, expandedContent, empty = 'No records found.', loading = false, label = 'Records', columnWidths = null, tableClassName = '' }) {
   const tableColumns = onSelect ? [...columns, { key: '__view', label: 'View', render: (row) => {
     const rowLabel = display(row.publicId || row.name || row.id || 'record');
     const isExpanded = expandedId !== null && expandedId !== undefined && String(expandedId) === String(row.id || row.publicId);
     return <button className="admin-console-secondary admin-console-view-action" type="button" onClick={(event) => { event.stopPropagation(); onSelect(row); }} aria-label={`View ${rowLabel} details`} aria-expanded={isExpanded}>View</button>;
   } }] : columns;
-  return <div className="admin-console-table-wrap"><table className="admin-console-table" aria-label={label} aria-busy={loading ? 'true' : 'false'}><thead><tr>{tableColumns.map((column) => <th key={column.key} scope="col">{column.label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => {
+  const tableClasses = ['admin-console-table', tableClassName].filter(Boolean).join(' ');
+  return <div className="admin-console-table-wrap"><table className={tableClasses} aria-label={label} aria-busy={loading ? 'true' : 'false'}>{columnWidths ? <colgroup>{tableColumns.map((column) => <col key={column.key} style={columnWidths[column.key] ? { width: columnWidths[column.key] } : undefined} />)}</colgroup> : null}<thead><tr>{tableColumns.map((column) => <th key={column.key} scope="col">{column.label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => {
     const rowId = row.id || row.publicId;
     const isExpanded = expandedId !== null && expandedId !== undefined && String(expandedId) === String(rowId);
     return <Fragment key={rowId}>
@@ -893,7 +904,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
           {section === 'overview' && !summary && loading ? <p className="admin-console-loading-inline">Loading overview…</p> : null}
           {section !== 'overview' && section !== 'admins' ? <FilterBar section={section} filters={filters} appliedFilters={appliedFilters} setFilters={setFilters} onApply={applyFilters} onClear={clearFilters} total={total} loading={loading || refreshing} /> : null}
           {section === 'admins' ? <form className="admin-console-create-form" onSubmit={createAdmin}><strong>Create admin user</strong><div className="admin-form-field"><label htmlFor="new-admin-username">Username</label><input id="new-admin-username" placeholder="Username" value={newAdmin.username} onChange={(event) => setNewAdmin({ ...newAdmin, username: event.target.value })} required /></div><div className="admin-form-field"><label htmlFor="new-admin-email">Email</label><input id="new-admin-email" placeholder="Email" type="email" value={newAdmin.email} onChange={(event) => setNewAdmin({ ...newAdmin, email: event.target.value })} /></div><div className="admin-form-field"><label htmlFor="new-admin-password">Temporary password</label><input id="new-admin-password" placeholder="Temporary password" type="password" minLength={12} value={newAdmin.password} onChange={(event) => setNewAdmin({ ...newAdmin, password: event.target.value })} required /></div><button className="admin-console-primary" type="submit" disabled={actionPending === 'create-admin'}>{actionPending === 'create-admin' ? 'Creating…' : 'Create'}</button></form> : null}
-          {section !== 'overview' ? <section className="admin-console-panel admin-console-record-panel"><div className="admin-console-panel-heading admin-console-record-heading"><button className="admin-console-secondary" type="button" onClick={() => loadData()} disabled={loading || refreshing} aria-label={`Refresh ${sectionLabel(section)}`}>{loading || refreshing ? 'Refreshing…' : 'Refresh'}</button></div><Table columns={columns} rows={rows} onSelect={selectRow} expandedId={expandedId} expandedContent={renderDetail} loading={loading || refreshing} label={sectionLabel(section)} />{section !== 'admins' ? <Pagination page={page} total={total} onChange={(nextPage) => { setPage(nextPage); closeDetail(); }} /> : null}</section> : null}
+          {section !== 'overview' ? <section className="admin-console-panel admin-console-record-panel"><div className="admin-console-panel-heading admin-console-record-heading"><button className="admin-console-secondary" type="button" onClick={() => loadData()} disabled={loading || refreshing} aria-label={`Refresh ${sectionLabel(section)}`}>{loading || refreshing ? 'Refreshing…' : 'Refresh'}</button></div><Table columns={columns} rows={rows} onSelect={selectRow} expandedId={expandedId} expandedContent={renderDetail} loading={loading || refreshing} label={sectionLabel(section)} tableClassName={section === 'trips' ? 'admin-console-table--trips' : ''} columnWidths={section === 'trips' ? TRIPS_TABLE_COLUMN_WIDTHS : null} />{section !== 'admins' ? <Pagination page={page} total={total} onChange={(nextPage) => { setPage(nextPage); closeDetail(); }} /> : null}</section> : null}
         </section>
       </div>
     </main>
