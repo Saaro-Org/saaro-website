@@ -95,7 +95,7 @@ function isSessionExpired(error) {
   return Boolean(error?.sessionExpired || error?.status === 401);
 }
 
-const FILTER_QUERY_KEYS = ['query', 'status', 'departureFrom', 'departureTo', 'action', 'resourceType'];
+const FILTER_QUERY_KEYS = ['query', 'status', 'departureFrom', 'departureTo', 'action', 'resourceType', 'resourceId', 'memberId', 'tripId', 'assignedAgentUserId'];
 
 function readConsoleUrlState() {
   if (typeof window === 'undefined') return { section: 'overview', page: 0, filters: {} };
@@ -245,23 +245,83 @@ function LoginScreen({ onLogin, initialResetToken = '', initialNotice = '' }) {
   );
 }
 
-function FilterBar({ section, filters, setFilters }) {
-  const update = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
-  const statusOptions = {
+function statusOptionsForSection(section) {
+  return {
     members: ['ACTIVE', 'SUSPENDED', 'DELETED'],
     trips: ['DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
     bookings: ['REQUESTED', 'PAYMENT_PENDING', 'CONFIRMED', 'REJECTED', 'IN_RIDE', 'COMPLETED', 'CANCELLED_BY_PASSENGER', 'CANCELLED_BY_DRIVER'],
     support: ['OPEN', 'CLOSED'],
   }[section] || [];
-  if (section === 'audit') {
-    return <div className="admin-console-filters" role="search" aria-label="Audit filters"><label className="admin-console-filter-field" htmlFor="audit-action"><span>Action</span><input id="audit-action" value={filters.action || ''} onChange={(event) => update('action', event.target.value)} placeholder="Filter by action" /></label><label className="admin-console-filter-field" htmlFor="audit-resource"><span>Resource type</span><input id="audit-resource" value={filters.resourceType || ''} onChange={(event) => update('resourceType', event.target.value)} placeholder="Resource type" /></label></div>;
-  }
+}
+
+function filterKeysForSection(section) {
+  if (section === 'audit') return ['action', 'resourceType', 'resourceId'];
+  const keys = ['query'];
+  if (statusOptionsForSection(section).length) keys.push('status');
+  if (section === 'trips') keys.push('departureFrom', 'departureTo');
+  if (section === 'bookings') keys.push('memberId', 'tripId');
+  if (section === 'support') keys.push('assignedAgentUserId');
+  return keys;
+}
+
+function filterValueLabel(key, value) {
+  if (key === 'status') return statusLabel(value);
+  return value;
+}
+
+function filtersAreValid(section, filters) {
+  if (section !== 'trips' || !filters.departureFrom || !filters.departureTo) return true;
+  return filters.departureFrom <= filters.departureTo;
+}
+
+function FilterBar({ section, filters, appliedFilters, setFilters, onApply, onClear, total, loading }) {
+  const [showMore, setShowMore] = useState(false);
+  const statusOptions = statusOptionsForSection(section);
+  const filterKeys = filterKeysForSection(section);
+  const advancedFields = section === 'bookings'
+    ? [{ key: 'memberId', label: 'Member ID', placeholder: 'User ID' }, { key: 'tripId', label: 'Trip ID', placeholder: 'Trip ID' }]
+    : section === 'support'
+      ? [{ key: 'assignedAgentUserId', label: 'Assignee ID', placeholder: 'Admin user ID' }]
+      : section === 'audit'
+        ? [{ key: 'resourceId', label: 'Resource ID', placeholder: 'Record ID' }]
+        : [];
+  const activeFilters = filterKeys.filter((key) => filters[key]).map((key) => ({ key, value: filters[key] }));
+  const advancedActive = advancedFields.some((field) => filters[field.key]);
+  const pending = filterKeys.some((key) => (filters[key] || '') !== (appliedFilters[key] || ''));
+  const dateError = !filtersAreValid(section, filters) ? 'End date must be on or after the start date.' : '';
+  const update = (key, value) => setFilters((current) => {
+    const next = { ...current };
+    const nextValue = typeof value === 'string' ? value : String(value || '');
+    if (nextValue) next[key] = nextValue;
+    else delete next[key];
+    return next;
+  });
+  const clearOne = (key) => update(key, '');
+  const searchPlaceholder = section === 'support' ? 'Subject, ticket, or requester' : section === 'audit' ? '' : 'Name, mobile, or reference';
+  useEffect(() => { setShowMore(advancedActive); }, [section]);
+
+  const renderTextField = (key, label, placeholder, extraProps = {}) => (
+    <label className="admin-console-filter-field" htmlFor={`${section}-${key}`} key={key}>
+      <span>{label}</span>
+      <input id={`${section}-${key}`} value={filters[key] || ''} onChange={(event) => update(key, event.target.value)} placeholder={placeholder} {...extraProps} />
+    </label>
+  );
+
   return (
-    <div className="admin-console-filters" role="search" aria-label={`${sectionLabel(section)} filters`}>
-      {section !== 'admins' ? <label className="admin-console-filter-field" htmlFor={`${section}-query`}><span>Search</span><input id={`${section}-query`} value={filters.query || ''} onChange={(event) => update('query', event.target.value)} placeholder={section === 'support' ? 'Subject or ticket reference' : 'Search by name or reference'} /></label> : null}
-      {statusOptions.length ? <label className="admin-console-filter-field" htmlFor={`${section}-status`}><span>Status</span><select id={`${section}-status`} value={filters.status || ''} onChange={(event) => update('status', event.target.value)}><option value="">All statuses</option>{statusOptions.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label> : null}
-      {section === 'trips' ? <><label className="admin-console-filter-field" htmlFor="trips-departure-from"><span>Departure from</span><input id="trips-departure-from" type="date" value={filters.departureFrom || ''} onChange={(event) => update('departureFrom', event.target.value)} /></label><label className="admin-console-filter-field" htmlFor="trips-departure-to"><span>Departure to</span><input id="trips-departure-to" type="date" value={filters.departureTo || ''} onChange={(event) => update('departureTo', event.target.value)} /></label></> : null}
-    </div>
+    <section className={`admin-console-filters${activeFilters.length ? ' has-active-filters' : ''}`} role="search" aria-label={`${sectionLabel(section)} filters`}>
+      <div className="admin-filter-toolbar">
+        {section !== 'audit' ? <label className="admin-console-filter-field admin-console-search-field" htmlFor={`${section}-query`}><span>Search</span><div className="admin-console-search-control"><input id={`${section}-query`} type="search" inputMode="search" enterKeyHint="search" autoComplete="off" value={filters.query || ''} onChange={(event) => update('query', event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); onApply(); } }} placeholder={searchPlaceholder} aria-label={`Search ${sectionLabel(section).toLowerCase()}`} />{filters.query ? <button className="admin-console-search-clear" type="button" onClick={() => clearOne('query')} aria-label="Clear search">×</button> : null}</div></label> : null}
+        {statusOptions.length ? <label className="admin-console-filter-field admin-console-status-field" htmlFor={`${section}-status`}><span>Status</span><select id={`${section}-status`} value={filters.status || ''} onChange={(event) => update('status', event.target.value)}><option value="">All statuses</option>{statusOptions.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label> : null}
+        {section === 'trips' ? <><label className="admin-console-filter-field" htmlFor="trips-departure-from"><span>Departure from</span><input id="trips-departure-from" type="date" value={filters.departureFrom || ''} onChange={(event) => update('departureFrom', event.target.value)} aria-invalid={dateError ? 'true' : 'false'} aria-describedby={dateError ? 'trips-date-error' : undefined} /></label><label className="admin-console-filter-field" htmlFor="trips-departure-to"><span>Departure to</span><input id="trips-departure-to" type="date" value={filters.departureTo || ''} onChange={(event) => update('departureTo', event.target.value)} aria-invalid={dateError ? 'true' : 'false'} aria-describedby={dateError ? 'trips-date-error' : undefined} /></label></> : null}
+        {advancedFields.length ? <button className="admin-console-filter-more" type="button" onClick={() => setShowMore((current) => !current)} aria-expanded={showMore}>{showMore ? 'Hide more filters' : 'More filters'}{advancedActive && !showMore ? <span className="admin-console-filter-count">{advancedFields.filter((field) => filters[field.key]).length}</span> : null}</button> : null}
+        {activeFilters.length ? <button className="admin-console-filter-clear" type="button" onClick={onClear}>Clear filters</button> : null}
+      </div>
+      {showMore ? <div className="admin-console-filter-advanced">{advancedFields.map((field) => renderTextField(field.key, field.label, field.placeholder, { maxLength: 80 }))}</div> : null}
+      {dateError ? <p className="admin-console-filter-error" id="trips-date-error" role="alert">{dateError}</p> : null}
+      {activeFilters.length ? <div className="admin-console-filter-chips" aria-label="Active filters">{activeFilters.map(({ key, value }) => <span className="admin-console-filter-chip" key={key}><span>{`${key === 'query' ? 'Search' : key === 'resourceType' ? 'Resource' : key === 'resourceId' ? 'Resource ID' : key === 'memberId' ? 'Member' : key === 'tripId' ? 'Trip' : key === 'assignedAgentUserId' ? 'Assignee' : key === 'departureFrom' ? 'From' : key === 'departureTo' ? 'To' : 'Status'}: ${filterValueLabel(key, value)}`}</span><button type="button" onClick={() => clearOne(key)} aria-label={`Remove ${key} filter`}>×</button></span>)}</div> : null}
+      {loading ? <p className="admin-console-filter-status" role="status" aria-live="polite">Updating results…</p> : null}
+      {total === 0 && !loading && !pending && activeFilters.length ? <p className="admin-console-filter-status" role="status">No matching records.</p> : null}
+    </section>
   );
 }
 
@@ -272,15 +332,19 @@ function Pagination({ page, total, onChange }) {
 }
 
 function Table({ columns, rows, onSelect, expandedId, expandedContent, empty = 'No records found.', loading = false, label = 'Records' }) {
-  return <div className="admin-console-table-wrap"><table className="admin-console-table" aria-label={label} aria-busy={loading ? 'true' : 'false'}><thead><tr>{columns.map((column) => <th key={column.key} scope="col">{column.label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => {
+  const tableColumns = onSelect ? [...columns, { key: '__view', label: 'View', render: (row) => {
+    const rowLabel = display(row.publicId || row.name || row.id || 'record');
+    const isExpanded = expandedId !== null && expandedId !== undefined && String(expandedId) === String(row.id || row.publicId);
+    return <button className="admin-console-secondary admin-console-view-action" type="button" onClick={(event) => { event.stopPropagation(); onSelect(row); }} aria-label={`View ${rowLabel} details`} aria-expanded={isExpanded}>View</button>;
+  } }] : columns;
+  return <div className="admin-console-table-wrap"><table className="admin-console-table" aria-label={label} aria-busy={loading ? 'true' : 'false'}><thead><tr>{tableColumns.map((column) => <th key={column.key} scope="col">{column.label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => {
     const rowId = row.id || row.publicId;
     const isExpanded = expandedId !== null && expandedId !== undefined && String(expandedId) === String(rowId);
-    const rowLabel = display(row.publicId || row.name || row.id || 'record');
     return <Fragment key={rowId}>
-      <tr className={onSelect ? 'admin-console-selectable-row' : undefined} onClick={onSelect ? () => onSelect(row) : undefined} onKeyDown={onSelect ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(row); } } : undefined} tabIndex={onSelect ? 0 : undefined} role={onSelect ? 'button' : undefined} aria-label={onSelect ? `Open ${rowLabel} details` : undefined} aria-expanded={onSelect ? isExpanded : undefined}>{columns.map((column) => <td key={column.key}>{column.render ? column.render(row) : display(row[column.key])}</td>)}</tr>
-      {isExpanded ? <tr className="admin-console-expanded-row"><td colSpan={columns.length}>{expandedContent?.(row)}</td></tr> : null}
+      <tr className={`${onSelect ? 'admin-console-selectable-row' : ''}${isExpanded ? ' is-expanded' : ''}`} onClick={onSelect ? () => onSelect(row) : undefined}>{tableColumns.map((column) => <td key={column.key}>{column.render ? column.render(row) : display(row[column.key])}</td>)}</tr>
+      {isExpanded ? <tr className="admin-console-expanded-row"><td colSpan={tableColumns.length}>{expandedContent?.(row)}</td></tr> : null}
     </Fragment>;
-  }) : <tr><td colSpan={columns.length} className="admin-console-empty" role="status">{loading ? 'Loading records…' : empty}</td></tr>}</tbody></table></div>;
+  }) : <tr><td colSpan={tableColumns.length} className="admin-console-empty" role="status">{loading ? 'Loading records…' : empty}</td></tr>}</tbody></table></div>;
 }
 
 function SummaryCard({ label, value, detail }) {
@@ -296,14 +360,65 @@ function DetailField({ label, value, status = false }) {
 }
 
 function ConfirmationDialog({ action, pending, onCancel, onConfirm }) {
+  const dialogRef = useRef(null);
+  const onCancelRef = useRef(onCancel);
+  const pendingRef = useRef(pending);
+  useEffect(() => { onCancelRef.current = onCancel; }, [onCancel]);
+  useEffect(() => { pendingRef.current = pending; }, [pending]);
+  useEffect(() => {
+    if (!action) return undefined;
+    const dialog = dialogRef.current;
+    const previousActiveElement = document.activeElement;
+    dialog?.focus();
+    document.body.classList.add('admin-modal-open');
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (!pendingRef.current) onCancelRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), [href], select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.classList.remove('admin-modal-open');
+      if (previousActiveElement instanceof HTMLElement) previousActiveElement.focus();
+    };
+  }, [action]);
   if (!action) return null;
   const isAdmin = action.kind === 'disable-admin';
-  return <div className="admin-console-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="admin-confirm-title" aria-describedby="admin-confirm-copy">
-    <div>
-      <h2 id="admin-confirm-title">{isAdmin ? 'Disable admin user?' : 'Close support ticket?'}</h2>
-      <p id="admin-confirm-copy">{isAdmin ? `Disable ${display(action.row?.username)}? They will lose console access.` : 'Close this ticket after you confirm the status reason.'}</p>
+  return <div className="admin-console-confirmation-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !pendingRef.current) onCancelRef.current(); }}>
+    <div ref={dialogRef} className="admin-console-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="admin-confirm-title" aria-describedby="admin-confirm-copy" tabIndex={-1} onMouseDown={(event) => event.stopPropagation()}>
+      <div>
+        <h2 id="admin-confirm-title">{isAdmin ? 'Disable admin user?' : 'Close support ticket?'}</h2>
+        <p id="admin-confirm-copy">{isAdmin ? <>Disable <strong>{display(action.row?.username)}</strong>{action.row?.email ? ` (${action.row.email})` : ''}? This removes console access.</> : <>Close <strong>{display(action.publicId || action.ticketId)}</strong>{action.subject ? <> — {action.subject}</> : null}? New replies will stop. {action.reason ? `Reason: ${action.reason}` : 'No status reason was entered.'}</>}</p>
+      </div>
+      <div className="admin-console-confirmation-actions"><button className="admin-console-secondary" type="button" onClick={onCancel} disabled={pending}>Cancel</button><button className="admin-console-danger" type="button" onClick={onConfirm} disabled={pending}>{pending ? 'Saving…' : 'Confirm'}</button></div>
     </div>
-    <div className="admin-console-confirmation-actions"><button className="admin-console-secondary" type="button" onClick={onCancel} disabled={pending}>Cancel</button><button className="admin-console-danger" type="button" onClick={onConfirm} disabled={pending}>{pending ? 'Saving…' : 'Confirm'}</button></div>
+  </div>;
+}
+
+function NoticeStack({ error, notice, onDismissError, onDismissNotice }) {
+  if (!error && !notice) return null;
+  return <div className="admin-console-notice-stack" aria-live="polite">
+    {error ? <div className="admin-console-banner admin-console-error" role="alert"><span>{error}</span><button className="admin-console-notice-dismiss" type="button" onClick={onDismissError} aria-label="Dismiss error">Dismiss</button></div> : null}
+    {notice ? <div className="admin-console-banner admin-console-success" role="status"><span>{notice}</span><button className="admin-console-notice-dismiss" type="button" onClick={onDismissNotice} aria-label="Dismiss notice">Dismiss</button></div> : null}
   </div>;
 }
 
@@ -332,6 +447,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
   const hydrateUrlRef = useRef({ section: false, filters: false });
   const requestSequence = useRef(0);
   const detailSequence = useRef(0);
+  const detailRef = useRef(null);
 
   useEffect(() => {
     const state = readConsoleUrlState();
@@ -367,6 +483,31 @@ function Console({ admin, onLogout, onSessionExpired }) {
     setSelected(null);
     setDetailLoading(false);
   };
+
+  const applyFilters = () => {
+    if (!filtersAreValid(section, filters)) return;
+    setPage(0);
+    closeDetail();
+    setAppliedFilters({ ...filters });
+    setNotice('');
+  };
+
+  const clearFilters = () => {
+    setFilters({});
+    setAppliedFilters({});
+    setPage(0);
+    closeDetail();
+    setNotice('');
+  };
+
+  useEffect(() => {
+    if (!selected?.kind || !selected?.rowId || !selected.data || !detailRef.current) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      detailRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      detailRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selected?.kind, selected?.rowId, Boolean(selected?.data)]);
 
   const loadData = useCallback(async ({ silent = false } = {}) => {
     if (!urlReady) return;
@@ -442,7 +583,8 @@ function Console({ admin, onLogout, onSessionExpired }) {
       hydrateUrlRef.current.filters = false;
       return undefined;
     }
-    const timer = setTimeout(() => { setPage(0); setAppliedFilters({ ...filters }); }, 250);
+    if (!filtersAreValid(section, filters)) return undefined;
+    const timer = setTimeout(() => { setPage(0); setAppliedFilters({ ...filters }); }, 350);
     return () => clearTimeout(timer);
   }, [filters, section, urlReady]);
 
@@ -517,8 +659,9 @@ function Console({ admin, onLogout, onSessionExpired }) {
     void openDetail(kind, row);
   };
 
-  const reloadSelectedSupport = async () => {
-    if (selected?.kind === 'support' && selected.data?.id) await openDetail('support', selected.data);
+  const reloadSelectedSupport = async (ticketId = selected?.data?.id) => {
+    const selectedTicketId = selected?.kind === 'support' ? selected.data?.id || selected.rowId : null;
+    if (ticketId && selectedTicketId && String(ticketId) === String(selectedTicketId)) await openDetail('support', selected.data);
     await loadData();
   };
 
@@ -554,18 +697,30 @@ function Console({ admin, onLogout, onSessionExpired }) {
     finally { setActionPending(''); }
   };
 
-  const updateSupport = async (status, confirmed = false) => {
-    const ticketId = selected?.data?.id;
+  const updateSupport = async (status, confirmed = false, ticketContext = null) => {
+    const context = ticketContext || (selected?.kind === 'support' ? {
+      ticketId: selected.data?.id || selected.rowId,
+      publicId: selected.data?.publicId,
+      subject: selected.data?.subject,
+      reason: supportReason.trim(),
+    } : null);
+    const ticketId = context?.ticketId;
     if (!ticketId || actionPending) return;
     if (status === 'CLOSED' && !confirmed) {
-      setConfirmAction({ kind: 'close-support', ticketId });
+      setConfirmAction({
+        kind: 'close-support',
+        ticketId,
+        publicId: context.publicId,
+        subject: context.subject,
+        reason: context.reason || '',
+      });
       return;
     }
     const actionKey = `support:${ticketId}:${status}`;
     beginAction(actionKey);
     try {
-      await requestApi(`/admin/support/tickets/${ticketId}`, { method: 'PATCH', body: JSON.stringify({ status, reason: supportReason.trim() || undefined }) });
-      setNotice(`Support ticket ${status === 'OPEN' ? 'reopened' : 'closed'}.`); setConfirmAction(null); await reloadSelectedSupport();
+      await requestApi(`/admin/support/tickets/${ticketId}`, { method: 'PATCH', body: JSON.stringify({ status, reason: context.reason || undefined }) });
+      setNotice(`Support ticket ${status === 'OPEN' ? 'reopened' : 'closed'}.`); setConfirmAction(null); await reloadSelectedSupport(ticketId);
     } catch (requestError) { if (!isSessionExpired(requestError)) setError(errorText(requestError)); }
     finally { setActionPending(''); }
   };
@@ -596,17 +751,101 @@ function Console({ admin, onLogout, onSessionExpired }) {
   const acceptConfirmation = async () => {
     if (!confirmAction || confirmPending) return;
     if (confirmAction.kind === 'disable-admin') await updateAdmin(confirmAction.row, 'DISABLED', true);
-    if (confirmAction.kind === 'close-support') await updateSupport('CLOSED', true);
+    if (confirmAction.kind === 'close-support') await updateSupport('CLOSED', true, confirmAction);
   };
 
   const renderDetail = () => {
     if (!selected) return null;
-    if (!selected.data) return <div className="admin-console-detail admin-console-detail-loading">{detailLoading ? 'Loading details…' : 'Details unavailable.'}</div>;
+    if (!selected.data) return <div ref={detailRef} className="admin-console-detail admin-console-detail-loading" data-admin-detail tabIndex={-1}>{detailLoading ? 'Loading details…' : 'Details unavailable.'}</div>;
     const data = selected.data;
-    if (selected.kind === 'member') return <aside className="admin-console-detail" aria-label="Member details"><DetailHeader title="Member detail" onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Name" value={data.name} /><DetailField label="Member ID" value={data.id} /><DetailField label="Mobile" value={data.mobile} /><DetailField label="Personal email" value={data.personalEmail} /><DetailField label="Personal email status" value={data.personalEmailStatus} status /><DetailField label="Work email" value={data.workEmail} /><DetailField label="Work email status" value={data.workEmailStatus} status /><DetailField label="Account status" value={data.status} status /><DetailField label="Created" value={formatDate(data.createdAt)} /></dl><h3>Vehicles</h3><Table columns={[{ key: 'registrationNumber', label: 'Registration' }, { key: 'make', label: 'Vehicle', render: (row) => `${row.make} ${row.model}` }, { key: 'verificationStatus', label: 'Verification', render: (row) => <StatusBadge value={row.verificationStatus} /> }, { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> }]} rows={data.vehicles || []} empty="No vehicles recorded." label="Member vehicles" /></aside>;
-    if (selected.kind === 'trip') return <aside className="admin-console-detail" aria-label="Trip details"><DetailHeader title={`Trip ${display(data.publicId)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Route" value={`${data.origin} → ${data.destination}`} /><DetailField label="Driver" value={data.driverName} /><DetailField label="Departure" value={formatDate(data.departureAt)} /><DetailField label="Status" value={data.status} status /><DetailField label="Seats" value={`${data.seatsTotal - data.seatsAvailable}/${data.seatsTotal} booked`} /><DetailField label="Booking mode" value={data.bookingMode} /><DetailField label="Fare" value={`${data.pricePerSeat} ${data.currency || 'INR'}`} /><DetailField label="Cancellation" value={data.cancellationReason} /></dl><h3>Bookings</h3><Table columns={[{ key: 'publicId', label: 'Reference' }, { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> }, { key: 'passengerCount', label: 'Passengers' }, { key: 'totalPrice', label: 'Total' }]} rows={data.bookings || []} empty="No bookings recorded." label="Trip bookings" /></aside>;
-    if (selected.kind === 'booking') return <aside className="admin-console-detail" aria-label="Booking details"><DetailHeader title={`Booking ${display(data.publicId)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Trip" value={data.tripPublicId} /><DetailField label="Route" value={data.route} /><DetailField label="Booker" value={data.bookedByName} /><DetailField label="Status" value={data.status} status /><DetailField label="Passengers" value={data.passengerCount} /><DetailField label="Total" value={`${data.totalPrice} ${data.currency}`} /><DetailField label="Payment" value={data.paymentStatus} status /><DetailField label="Pickup" value={data.pickup?.label} /><DetailField label="Drop" value={data.drop?.label} /><DetailField label="Created" value={formatDate(data.createdAt)} /></dl><h3>Traveller snapshot</h3><Table columns={[{ key: 'name', label: 'Name' }, { key: 'ageBucket', label: 'Age' }, { key: 'gender', label: 'Gender' }]} rows={data.passengers || []} empty="No traveller rows." label="Booking travellers" /><h3>Booking events</h3><Table columns={[{ key: 'occurredAt', label: 'Time', render: (row) => formatDate(row.occurredAt) }, { key: 'fromStatus', label: 'From', render: (row) => <StatusBadge value={row.fromStatus} /> }, { key: 'toStatus', label: 'To', render: (row) => <StatusBadge value={row.toStatus} /> }, { key: 'actorRole', label: 'Actor' }]} rows={data.events || []} empty="No events recorded." label="Booking events" /></aside>;
-    if (selected.kind === 'support') return <aside className="admin-console-detail" aria-label="Support ticket details"><DetailHeader title={`${display(data.publicId)} · ${display(data.subject)}`} onClose={closeDetail} /><dl className="admin-detail-grid"><DetailField label="Requester" value={data.requesterName} /><DetailField label="Requester email" value={data.requesterEmail} /><DetailField label="Category" value={data.category} /><DetailField label="Status" value={data.status} status /><DetailField label="Updated" value={formatDate(data.updatedAt)} /></dl><div className="admin-support-messages">{(data.messages || []).map((message) => <div className={`admin-support-message ${message.senderRole === 'SUPPORT' || message.senderAdminUserId ? 'is-admin' : ''}`} key={message.id}><strong>{statusLabel(message.senderRole)}</strong><time>{formatDate(message.createdAt)}</time><p>{message.text}</p></div>)}</div><p className="admin-support-auto-close-note">Open tickets close automatically after 24 hours without activity.</p><p className="admin-support-live-note">New messages load automatically while this ticket is open.</p><form className="admin-console-form" onSubmit={sendSupportReply}><div className="admin-form-field"><label htmlFor="support-reply">Reply</label><textarea id="support-reply" value={supportReply} onChange={(event) => setSupportReply(event.target.value)} maxLength={2000} rows={4} required /></div><button className="admin-console-primary" type="submit" disabled={actionPending === 'support-reply'}>{actionPending === 'support-reply' ? 'Sending…' : 'Send reply'}</button></form><div className="admin-support-actions"><div className="admin-form-field"><label htmlFor="support-reason">Status reason</label><input id="support-reason" value={supportReason} onChange={(event) => setSupportReason(event.target.value)} placeholder="Reason for status change" maxLength={500} /></div>{data.status === 'OPEN' ? <button className="admin-console-danger" type="button" disabled={Boolean(actionPending)} onClick={() => updateSupport('CLOSED')}>{actionPending === `support:${data.id}:CLOSED` ? 'Closing…' : 'Close ticket'}</button> : <button className="admin-console-secondary" type="button" disabled={Boolean(actionPending)} onClick={() => updateSupport('OPEN')}>{actionPending === `support:${data.id}:OPEN` ? 'Reopening…' : 'Reopen ticket'}</button>}</div></aside>;
+    if (selected.kind === 'member') return <aside ref={detailRef} className="admin-console-detail" data-admin-detail tabIndex={-1} aria-label="Member details">
+      <DetailHeader title="Member detail" onClose={closeDetail} />
+      <dl className="admin-detail-grid">
+        <DetailField label="Name" value={data.name} />
+        <DetailField label="Member ID" value={data.id} />
+        <DetailField label="Mobile" value={data.mobile} />
+        <DetailField label="Personal email" value={data.personalEmail} />
+        <DetailField label="Personal email status" value={data.personalEmailStatus} status />
+        <DetailField label="Work email" value={data.workEmail} />
+        <DetailField label="Work email status" value={data.workEmailStatus} status />
+        <DetailField label="Account status" value={data.status} status />
+        <DetailField label="Created" value={formatDate(data.createdAt)} />
+      </dl>
+      <h3>Vehicles</h3>
+      <Table columns={[{ key: 'registrationNumber', label: 'Registration' }, { key: 'make', label: 'Vehicle', render: (row) => `${row.make} ${row.model}` }, { key: 'verificationStatus', label: 'Verification', render: (row) => <StatusBadge value={row.verificationStatus} /> }, { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> }]} rows={data.vehicles || []} empty="No vehicles recorded." label="Member vehicles" />
+    </aside>;
+    if (selected.kind === 'trip') return <aside ref={detailRef} className="admin-console-detail" data-admin-detail tabIndex={-1} aria-label="Trip details">
+      <DetailHeader title={`Trip ${display(data.publicId)}`} onClose={closeDetail} />
+      <dl className="admin-detail-grid">
+        <DetailField label="Route" value={`${data.origin} → ${data.destination}`} />
+        <DetailField label="Driver" value={data.driverName} />
+        <DetailField label="Departure" value={formatDate(data.departureAt)} />
+        <DetailField label="Status" value={data.status} status />
+        <DetailField label="Seats" value={`${data.seatsTotal - data.seatsAvailable}/${data.seatsTotal} booked`} />
+        <DetailField label="Booking mode" value={data.bookingMode} />
+        <DetailField label="Fare" value={`${data.pricePerSeat} ${data.currency || 'INR'}`} />
+        <DetailField label="Cancellation" value={data.cancellationReason} />
+      </dl>
+      <h3>Bookings</h3>
+      <Table columns={[{ key: 'publicId', label: 'Reference' }, { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> }, { key: 'passengerCount', label: 'Passengers' }, { key: 'totalPrice', label: 'Total' }]} rows={data.bookings || []} empty="No bookings recorded." label="Trip bookings" />
+    </aside>;
+    if (selected.kind === 'booking') return <aside ref={detailRef} className="admin-console-detail" data-admin-detail tabIndex={-1} aria-label="Booking details">
+      <DetailHeader title={`Booking ${display(data.publicId)}`} onClose={closeDetail} />
+      <dl className="admin-detail-grid">
+        <DetailField label="Trip" value={data.tripPublicId} />
+        <DetailField label="Route" value={data.route} />
+        <DetailField label="Booker" value={data.bookedByName} />
+        <DetailField label="Status" value={data.status} status />
+        <DetailField label="Passengers" value={data.passengerCount} />
+        <DetailField label="Total" value={`${data.totalPrice} ${data.currency}`} />
+        <DetailField label="Payment" value={data.paymentStatus} status />
+        <DetailField label="Pickup" value={data.pickup?.label} />
+        <DetailField label="Drop" value={data.drop?.label} />
+        <DetailField label="Created" value={formatDate(data.createdAt)} />
+      </dl>
+      <h3>Traveller snapshot</h3>
+      <Table columns={[{ key: 'name', label: 'Name' }, { key: 'ageBucket', label: 'Age' }, { key: 'gender', label: 'Gender' }]} rows={data.passengers || []} empty="No traveller rows." label="Booking travellers" />
+      <h3>Booking events</h3>
+      <Table columns={[{ key: 'occurredAt', label: 'Time', render: (row) => formatDate(row.occurredAt) }, { key: 'fromStatus', label: 'From', render: (row) => <StatusBadge value={row.fromStatus} /> }, { key: 'toStatus', label: 'To', render: (row) => <StatusBadge value={row.toStatus} /> }, { key: 'actorRole', label: 'Actor' }]} rows={data.events || []} empty="No events recorded." label="Booking events" />
+    </aside>;
+    if (selected.kind === 'support') {
+      const messageCount = data.messages?.length || 0;
+      const ticketId = data.id || selected.rowId;
+      return <aside ref={detailRef} className="admin-console-detail" data-admin-detail tabIndex={-1} aria-label="Support ticket details">
+        <DetailHeader title={`${display(data.publicId)} · ${display(data.subject)}`} onClose={closeDetail} />
+        <div className="admin-support-status-bar" role="group" aria-label="Ticket status controls">
+          <div className="admin-support-status-copy">
+            <span>Ticket status</span>
+            <StatusBadge value={data.status} />
+          </div>
+          <div className="admin-form-field admin-support-status-field">
+            <label htmlFor="support-reason">Status reason (optional)</label>
+            <input id="support-reason" value={supportReason} onChange={(event) => setSupportReason(event.target.value)} placeholder="Optional audit note" maxLength={500} />
+          </div>
+          {data.status === 'OPEN' ? <button className="admin-console-danger" type="button" disabled={Boolean(actionPending)} onClick={() => updateSupport('CLOSED')} aria-label={`Close support ticket ${display(data.publicId)}`}>{actionPending === `support:${ticketId}:CLOSED` ? 'Closing…' : 'Close ticket'}</button> : <button className="admin-console-secondary" type="button" disabled={Boolean(actionPending)} onClick={() => updateSupport('OPEN')} aria-label={`Reopen support ticket ${display(data.publicId)}`}>{actionPending === `support:${ticketId}:OPEN` ? 'Reopening…' : 'Reopen ticket'}</button>}
+        </div>
+        <dl className="admin-detail-grid">
+          <DetailField label="Requester" value={data.requesterName} />
+          <DetailField label="Requester email" value={data.requesterEmail} />
+          <DetailField label="Category" value={data.category} />
+          <DetailField label="Updated" value={formatDate(data.updatedAt)} />
+        </dl>
+        <section className="admin-support-thread" aria-labelledby="admin-support-thread-heading">
+          <div className="admin-support-thread-heading" id="admin-support-thread-heading">
+            <div><h3>Conversation</h3><p>{messageCount} message{messageCount === 1 ? '' : 's'}</p></div>
+            <span>{display(data.requesterName)} · {display(data.category)}</span>
+          </div>
+          <div className="admin-support-messages">
+            {messageCount ? data.messages.map((message) => <div className={`admin-support-message ${message.senderRole === 'SUPPORT' || message.senderAdminUserId ? 'is-admin' : ''}`} key={message.id}><div className="admin-support-message-header"><strong>{statusLabel(message.senderRole)}</strong><time>{formatDate(message.createdAt)}</time></div><p>{message.text}</p></div>) : <p className="admin-support-empty">No messages yet.</p>}
+          </div>
+        </section>
+        <p className="admin-support-context" aria-label="Open tickets close automatically after 24 hours without activity. New messages load automatically while this ticket is open.">Auto-closes after 24 hours idle · messages refresh while open.</p>
+        <form className="admin-console-form" onSubmit={sendSupportReply}>
+          <div className="admin-form-field"><label htmlFor="support-reply">Reply</label><textarea id="support-reply" value={supportReply} onChange={(event) => setSupportReply(event.target.value)} maxLength={2000} rows={4} required /></div>
+          <button className="admin-console-primary" type="submit" disabled={actionPending === 'support-reply'}>{actionPending === 'support-reply' ? 'Sending…' : 'Send reply'}</button>
+        </form>
+      </aside>;
+    }
     return null;
   };
 
@@ -636,8 +875,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
         </aside>
         <section className="admin-console-main">
           <header className="admin-console-header"><div><p className="admin-console-kicker">Operations</p><h1>{sectionLabel(section)}</h1><p className="admin-console-refresh-state" role="status" aria-live="polite">{refreshing || loading ? 'Refreshing data…' : lastUpdated ? `Updated ${formatDate(lastUpdated)}` : 'Waiting for data'}</p></div><div className="admin-console-identity">{display(admin?.username)} · {display(admin?.role)}</div></header>
-          {error ? <div className="admin-console-banner admin-console-error" role="alert">{error}</div> : null}
-          {notice ? <div className="admin-console-banner admin-console-success" role="status">{notice}</div> : null}
+          <NoticeStack error={error} notice={notice} onDismissError={() => setError('')} onDismissNotice={() => setNotice('')} />
           <ConfirmationDialog action={confirmAction} pending={confirmPending} onCancel={() => setConfirmAction(null)} onConfirm={acceptConfirmation} />
           {section === 'overview' && summary ? <>
             <div className="admin-summary-grid"><SummaryCard label="Members" value={summary.members?.total} detail={`${display(summary.members?.active)} active`} /><SummaryCard label="Active trips" value={(summary.trips?.published || 0) + (summary.trips?.inProgress || 0)} detail="Published or in progress" /><SummaryCard label="Bookings" value={summary.bookings?.total} detail={`${display(summary.bookings?.confirmed)} confirmed`} /><SummaryCard label="Active support" value={summary.support?.open} detail="Open tickets" /><SummaryCard label="Admin users" value={summary.admins?.active} detail="Active accounts" /></div>
@@ -648,9 +886,9 @@ function Console({ admin, onLogout, onSessionExpired }) {
             </div>
           </> : null}
           {section === 'overview' && !summary && loading ? <p className="admin-console-loading-inline">Loading overview…</p> : null}
-          {section !== 'overview' && section !== 'admins' ? <FilterBar section={section} filters={filters} setFilters={setFilters} /> : null}
+          {section !== 'overview' && section !== 'admins' ? <FilterBar section={section} filters={filters} appliedFilters={appliedFilters} setFilters={setFilters} onApply={applyFilters} onClear={clearFilters} total={total} loading={loading || refreshing} /> : null}
           {section === 'admins' ? <form className="admin-console-create-form" onSubmit={createAdmin}><strong>Create admin user</strong><div className="admin-form-field"><label htmlFor="new-admin-username">Username</label><input id="new-admin-username" placeholder="Username" value={newAdmin.username} onChange={(event) => setNewAdmin({ ...newAdmin, username: event.target.value })} required /></div><div className="admin-form-field"><label htmlFor="new-admin-email">Email</label><input id="new-admin-email" placeholder="Email" type="email" value={newAdmin.email} onChange={(event) => setNewAdmin({ ...newAdmin, email: event.target.value })} /></div><div className="admin-form-field"><label htmlFor="new-admin-password">Temporary password</label><input id="new-admin-password" placeholder="Temporary password" type="password" minLength={12} value={newAdmin.password} onChange={(event) => setNewAdmin({ ...newAdmin, password: event.target.value })} required /></div><button className="admin-console-primary" type="submit" disabled={actionPending === 'create-admin'}>{actionPending === 'create-admin' ? 'Creating…' : 'Create'}</button></form> : null}
-          {section !== 'overview' ? <section className="admin-console-panel"><div className="admin-console-panel-heading"><div><h2>{sectionLabel(section)}</h2>{loading ? <p>Loading…</p> : detailKind ? <p>Select a row to expand details.</p> : null}</div><button className="admin-console-secondary" type="button" onClick={() => loadData()} disabled={loading || refreshing}>{loading || refreshing ? 'Refreshing…' : 'Refresh'}</button></div><Table columns={columns} rows={rows} onSelect={selectRow} expandedId={expandedId} expandedContent={renderDetail} loading={loading || refreshing} label={sectionLabel(section)} />{section !== 'admins' ? <Pagination page={page} total={total} onChange={(nextPage) => { setPage(nextPage); closeDetail(); }} /> : null}</section> : null}
+          {section !== 'overview' ? <section className="admin-console-panel admin-console-record-panel"><div className="admin-console-panel-heading admin-console-record-heading"><button className="admin-console-secondary" type="button" onClick={() => loadData()} disabled={loading || refreshing} aria-label={`Refresh ${sectionLabel(section)}`}>{loading || refreshing ? 'Refreshing…' : 'Refresh'}</button></div><Table columns={columns} rows={rows} onSelect={selectRow} expandedId={expandedId} expandedContent={renderDetail} loading={loading || refreshing} label={sectionLabel(section)} />{section !== 'admins' ? <Pagination page={page} total={total} onChange={(nextPage) => { setPage(nextPage); closeDetail(); }} /> : null}</section> : null}
         </section>
       </div>
     </main>
@@ -658,7 +896,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
 }
 
 function DetailHeader({ title, onClose }) {
-  return <div className="admin-console-detail-header"><h2>{title}</h2><button className="admin-console-link" type="button" onClick={onClose}>Close</button></div>;
+  return <div className="admin-console-detail-header"><h2>{title}</h2><button className="admin-console-secondary admin-console-detail-close" type="button" onClick={onClose}>Close details</button></div>;
 }
 
 export default function AdminPortal() {
