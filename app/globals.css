@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap');
 
 :root {
   /* Fluxgo web tokens mirror fluxgo-frontend/src/constants/tokens.json. */
@@ -3832,6 +3832,184 @@ h2 { font: 700 clamp(38px, 5.3vw, 72px)/0.94 var(--display); letter-spacing: -0.
 .admin-console-status.is-neutral { border-color: var(--line); color: var(--ink2); background: var(--fill); }
 
 /* Final admin visual pass. Keep only boundaries that improve scan, action, or safety. */
+/* Vachas reference alignment: calm canvas, light rail, orange actions, compact data surfaces. */
+.admin-console-page {
+  --admin-ref-ink: #1F1F1F;
+  --admin-ref-nav: #1F1F1F;
+  --admin-ref-primary: #EE7A44;
+  --admin-ref-primary-hover: #D9632F;
+  --admin-ref-canvas: #F5F5F5;
+  --admin-ref-surface: #FFFFFF;
+  --admin-ref-border: #E2E2E2;
+  --admin-ref-muted: #686868;
+  --admin-ref-success: #18794E;
+  --admin-ref-warning: #B7791F;
+  --admin-ref-error: #B42318;
+  --admin-ref-display: "Manrope", "Inter", sans-serif;
+  --admin-ref-body: "Inter", "Segoe UI", sans-serif;
+  background: var(--admin-ref-canvas) !important;
+  color: var(--admin-ref-ink) !important;
+  font-family: var(--admin-ref-body) !important;
+}
+
+.admin-console-shell {
+  grid-template-columns: 224px minmax(0, 1fr) !important;
+  max-width: 1660px !important;
+}
+
+.admin-console-main { padding: 0 20px 56px !important; }
+
+.admin-console-sidebar {
+  gap: 16px !important;
+  padding: 18px 8px 14px !important;
+  border-right: 1px solid var(--admin-ref-border) !important;
+  background: var(--admin-ref-surface) !important;
+  color: var(--admin-ref-ink) !important;
+  box-shadow: none !important;
+}
+
+.admin-console-title {
+  padding: 0 10px 16px 38px !important;
+  border-bottom-color: var(--admin-ref-border) !important;
+}
+
+.admin-console-title > img { filter: none !important; }
+.admin-console-title span { color: var(--admin-ref-muted) !important; }
+.admin-console-sidebar nav { gap: 10px !important; }
+.admin-console-nav-group { display: grid; gap: 2px; }
+.admin-console-nav-group + .admin-console-nav-group { margin-top: 4px; }
+.admin-console-nav-label { padding: 0 12px 3px; color: #8A8A8A; font-size: 10px; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.admin-console-sidebar nav button {
+  min-height: 36px !important;
+  padding: 8px 10px 8px 14px !important;
+  border-radius: 8px !important;
+  color: var(--admin-ref-muted) !important;
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+.admin-console-sidebar nav button:hover,
+.admin-console-sidebar nav button:focus-visible,
+.admin-console-sidebar nav button.is-active {
+  background: #FDE8DE !important;
+  color: #B84F22 !important;
+}
+
+.admin-console-sidebar nav button::before { display: none !important; }
+.admin-console-sidebar nav button.is-active::before { display: block !important; width: 3px !important; height: 18px !important; top: 50% !important; right: auto !important; bottom: auto !important; left: 0 !important; border-radius: 4px !important; background: var(--admin-ref-primary) !important; transform: translateY(-50%) !important; }
+.admin-console-sidebar-logout { min-height: 40px !important; border-color: var(--admin-ref-border) !important; border-radius: 8px !important; color: var(--admin-ref-muted) !important; font-size: 12px !important; }
+.admin-console-sidebar-logout:hover { border-color: #D5B4A4 !important; background: #FFF7F3 !important; color: #B84F22 !important; }
+
+.admin-console-header {
+  min-height: 64px !important;
+  margin-bottom: 16px !important;
+  padding: 14px 0 12px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+}
+
+.admin-console-header .admin-console-kicker { display: none !important; }
+.admin-console-header > div:first-child { display: grid; grid-template-columns: max-content max-content; align-items: baseline; column-gap: 8px; }
+.admin-console-header h1 { margin: 0 0 3px !important; font: 700 22px/1.2 var(--admin-ref-display) !important; letter-spacing: -0.035em !important; }
+.admin-console-refresh-state { grid-column: 2; grid-row: 1; margin: 0 !important; color: var(--admin-ref-muted) !important; font-size: 11px !important; }
+.admin-console-identity { border-color: var(--admin-ref-border) !important; background: var(--admin-ref-surface) !important; color: var(--admin-ref-muted) !important; font-size: 11px !important; }
+
+.admin-console-page h2,
+.admin-console-page h3,
+.admin-console-page strong,
+.admin-auth-page h1 { font-family: "Manrope", "Inter", sans-serif !important; }
+
+.admin-summary-grid { gap: 10px !important; margin-bottom: 14px !important; }
+.admin-summary-card { min-height: 96px !important; padding: 14px !important; border: 1px solid var(--admin-ref-border) !important; border-radius: 12px !important; background: var(--admin-ref-surface) !important; box-shadow: 0 1px 2px rgba(31, 31, 31, 0.04) !important; }
+.admin-summary-card::before { display: none !important; }
+.admin-summary-card span { color: var(--admin-ref-muted) !important; font-size: 11px !important; }
+.admin-summary-card strong { color: var(--admin-ref-ink) !important; font-size: 28px !important; }
+.admin-summary-card small { color: var(--admin-ref-muted) !important; font-size: 11px !important; }
+
+.admin-console-panel { padding: 0 0 14px !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+.admin-console-panel-heading { gap: 12px !important; margin-bottom: 10px !important; }
+.admin-console-panel-heading h2 { font-size: 18px !important; }
+
+.admin-console-filters { margin-bottom: 12px !important; padding-bottom: 12px !important; border-bottom: 1px solid var(--admin-ref-border) !important; }
+.admin-console-filter-field > span { color: var(--admin-ref-muted) !important; font-size: 10px !important; }
+.admin-console-filters input,
+.admin-console-filters select,
+.admin-console-create-form input,
+.admin-support-actions input,
+.admin-auth-form input,
+.admin-console-form textarea { min-height: 40px !important; border-color: #CCCCCC !important; border-radius: 8px !important; background: var(--admin-ref-surface) !important; color: var(--admin-ref-ink) !important; }
+.admin-console-filters input:focus-visible,
+.admin-console-filters select:focus-visible,
+.admin-console-create-form input:focus-visible,
+.admin-support-actions input:focus-visible,
+.admin-auth-form input:focus-visible,
+.admin-console-form textarea:focus-visible { border-color: var(--admin-ref-primary) !important; box-shadow: 0 0 0 3px rgba(238, 122, 68, 0.18) !important; }
+
+.admin-console-primary,
+.admin-console-secondary,
+.admin-console-danger { min-height: 40px !important; border-radius: 8px !important; box-shadow: none !important; font-size: 12px !important; }
+.admin-console-primary { background: var(--admin-ref-primary) !important; color: var(--admin-ref-ink) !important; }
+.admin-console-primary:hover { background: var(--admin-ref-primary-hover) !important; }
+.admin-console-secondary { border-color: var(--admin-ref-border) !important; background: var(--admin-ref-surface) !important; color: var(--admin-ref-ink) !important; }
+.admin-console-secondary:hover { border-color: #B8B8B8 !important; background: #FAFAFA !important; }
+.admin-console-danger { background: var(--admin-ref-error) !important; color: #FFFFFF !important; }
+.admin-console-link { color: #B84F22 !important; }
+
+.admin-console-table-wrap { border: 1px solid var(--admin-ref-border) !important; border-radius: 10px !important; background: var(--admin-ref-surface) !important; box-shadow: none !important; }
+.admin-console-table { min-width: 720px !important; color: var(--admin-ref-ink) !important; font-size: 12.5px !important; }
+.admin-console-table th,
+.admin-console-table td { height: 40px !important; padding: 7px 12px !important; border-bottom-color: var(--admin-ref-border) !important; }
+.admin-console-table th { background: var(--admin-ref-canvas) !important; color: var(--admin-ref-muted) !important; font-size: 10px !important; letter-spacing: 0.08em !important; }
+.admin-console-table tbody tr.admin-console-selectable-row:hover,
+.admin-console-table tbody tr.admin-console-selectable-row:focus-within { background: rgba(238, 122, 68, 0.07) !important; box-shadow: none !important; }
+.admin-console-expanded-row > td { background: #FAFAFA !important; }
+.admin-console-pagination { padding: 8px 12px 0 !important; font-size: 12px !important; }
+
+.admin-console-detail { margin-top: 16px !important; padding: 18px 0 0 !important; border: 0 !important; border-top: 1px solid var(--admin-ref-border) !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+.admin-console-detail-header { margin: 0 0 16px !important; padding: 0 0 12px !important; background: transparent !important; }
+.admin-console-detail-header h2 { font-size: 20px !important; }
+.admin-detail-grid { gap: 8px !important; margin-bottom: 16px !important; }
+.admin-detail-field { padding: 9px 10px !important; border: 1px solid var(--admin-ref-border) !important; border-radius: 8px !important; background: var(--admin-ref-surface) !important; }
+.admin-detail-field dt { color: var(--admin-ref-muted) !important; font-size: 10px !important; }
+.admin-detail-field dd { font-size: 13px !important; }
+
+.admin-support-status-bar { margin-bottom: 16px !important; padding: 10px !important; border: 1px solid rgba(238, 122, 68, 0.42) !important; border-radius: 10px !important; background: #FDE8DE !important; }
+.admin-support-messages { padding: 10px !important; border: 1px solid var(--admin-ref-border) !important; border-radius: 10px !important; background: var(--admin-ref-canvas) !important; }
+.admin-support-message { padding: 10px 12px !important; border: 1px solid var(--admin-ref-border) !important; border-radius: 8px !important; background: var(--admin-ref-surface) !important; }
+.admin-support-message.is-admin { border-color: rgba(238, 122, 68, 0.38) !important; background: #FDE8DE !important; }
+
+.admin-auth-page {
+  --admin-ref-ink: #1F1F1F;
+  --admin-ref-canvas: #F5F5F5;
+  --admin-ref-surface: #FFFFFF;
+  --admin-ref-border: #E2E2E2;
+  --admin-ref-body: "Inter", "Segoe UI", sans-serif;
+  background: var(--admin-ref-canvas) !important;
+  color: var(--admin-ref-ink) !important;
+  font-family: var(--admin-ref-body) !important;
+}
+.admin-auth-card { border-color: var(--admin-ref-border) !important; border-radius: 12px !important; background: var(--admin-ref-surface) !important; box-shadow: 0 1px 2px rgba(31, 31, 31, 0.04) !important; }
+
+@media (max-width: 840px) {
+  .admin-console-shell { display: block !important; }
+  .admin-console-sidebar { position: relative !important; height: auto !important; min-height: 0 !important; padding: 16px 12px 14px !important; }
+  .admin-console-sidebar nav { display: flex !important; gap: 6px !important; overflow-x: auto !important; }
+  .admin-console-nav-group { display: contents !important; }
+  .admin-console-nav-label { display: none !important; }
+  .admin-console-sidebar nav button { flex: 0 0 auto !important; min-height: 36px !important; white-space: nowrap !important; }
+  .admin-console-sidebar nav button.is-active::before { top: auto !important; right: 10px !important; bottom: 2px !important; left: 10px !important; width: auto !important; height: 2px !important; transform: none !important; }
+  .admin-console-header > div:first-child { grid-template-columns: 1fr; row-gap: 2px; }
+  .admin-console-refresh-state { grid-column: 1; grid-row: 2; }
+  .admin-console-main { padding: 0 16px 40px !important; }
+}
+
+@media (max-width: 560px) {
+  .admin-console-main { padding-right: 12px !important; padding-left: 12px !important; }
+  .admin-console-header { min-height: 60px !important; padding-top: 12px !important; padding-bottom: 10px !important; }
+  .admin-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .admin-summary-card { min-height: 88px !important; padding: 12px !important; }
+  .admin-summary-card strong { font-size: 24px !important; }
+}
 .admin-console-main { padding-bottom: 56px !important; }
 .admin-console-header { min-height: 96px; margin-bottom: 18px; padding: 18px 1px 16px; }
 .admin-console-header h1 { margin: 2px 0 4px; font-size: clamp(30px, 3.2vw, 42px); }

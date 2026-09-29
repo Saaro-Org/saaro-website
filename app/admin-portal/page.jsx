@@ -19,6 +19,11 @@ const SECTIONS = [
   { id: 'audit', label: 'Audit log' },
 ];
 
+const SECTION_GROUPS = [
+  { id: 'operations', label: 'Operations', items: SECTIONS.slice(0, 5) },
+  { id: 'administration', label: 'Administration', items: SECTIONS.slice(5) },
+];
+
 async function requestApi(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}/v1${path}`, {
     ...options,
@@ -870,7 +875,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
       <div className="admin-console-shell">
         <aside className="admin-console-sidebar">
           <div className="admin-console-title"><Image src="/assets/fluxgo-wordmark.png" alt="Flux Go" width={423} height={126} priority /><span>Admin console</span></div>
-          <nav aria-label="Admin sections">{SECTIONS.map((item) => <button key={item.id} className={section === item.id ? 'is-active' : ''} type="button" onClick={() => setSection(item.id)}>{item.label}</button>)}</nav>
+          <nav aria-label="Admin sections">{SECTION_GROUPS.map((group) => <div className="admin-console-nav-group" key={group.id}><span className="admin-console-nav-label">{group.label}</span>{group.items.map((item) => <button key={item.id} className={section === item.id ? 'is-active' : ''} type="button" onClick={() => setSection(item.id)}>{item.label}</button>)}</div>)}</nav>
           <button className="admin-console-sidebar-logout" type="button" onClick={logout} disabled={actionPending === 'logout'}>{actionPending === 'logout' ? 'Signing out…' : 'Sign out'}</button>
         </aside>
         <section className="admin-console-main">
