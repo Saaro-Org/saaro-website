@@ -9,6 +9,7 @@ import {
   ANDROID_STORE_PUBLIC,
   APP_STORE_ID,
   APP_STORE_URL,
+  IOS_APP_LINKS_LIVE,
   OPEN_HOST_URL,
   PLAY_STORE_URL,
   SITE_URL,
@@ -46,7 +47,8 @@ export async function generateMetadata({ params }) {
     alternates: { canonical: url },
     openGraph: { title, description, url, siteName: 'Fluxgo', type: 'website' },
     twitter: { card: 'summary_large_image', title, description },
-    itunes: { appId: APP_STORE_ID, appArgument: url }
+    // Show the Safari App Store banner only when the live app can open shared links.
+    itunes: IOS_APP_LINKS_LIVE ? { appId: APP_STORE_ID, appArgument: url } : null
   };
 }
 
@@ -80,13 +82,17 @@ function Avatar({ host }) {
   return <span className="fx-share-avatar" aria-hidden="true">{host.displayName.charAt(0)}</span>;
 }
 
+const COMING_SOON_NOTE = 'The Fluxgo app is coming soon. Book on the web for now.';
+
 function actionsFor(kind, trip) {
   const id = trip.publicId;
   const web = `${WEB_APP_URL}/trip/${id}`;
+  const webAction = { href: web, label: 'Continue on the web' };
   if (trip.state !== 'OPEN') {
     return { primary: { href: WEB_APP_URL, label: 'Find another ride' }, secondary: null };
   }
   if (kind === 'ios') {
+    if (!IOS_APP_LINKS_LIVE) return { primary: webAction, secondary: null, note: COMING_SOON_NOTE };
     return {
       primary: { href: `${OPEN_HOST_URL}/open/ride/${id}`, label: 'Book in the Fluxgo app' },
       secondary: { href: web, label: 'Continue in browser' },
@@ -94,16 +100,18 @@ function actionsFor(kind, trip) {
     };
   }
   if (kind === 'android') {
-    const fallback = ANDROID_STORE_PUBLIC ? PLAY_STORE_URL : web;
+    // Closed testers who have the app open shared links in the app before this page loads.
+    if (!ANDROID_STORE_PUBLIC) return { primary: webAction, secondary: null, note: COMING_SOON_NOTE };
     return {
       primary: {
-        href: `intent://trip/${id}#Intent;scheme=fluxgo;package=${ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(fallback)};end`,
+        href: `intent://trip/${id}#Intent;scheme=fluxgo;package=${ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(PLAY_STORE_URL)};end`,
         label: 'Book in the Fluxgo app'
       },
       secondary: { href: web, label: 'Continue in browser' },
-      note: ANDROID_STORE_PUBLIC ? 'Opens Fluxgo if you have it. If not, Google Play opens.' : 'Opens Fluxgo if you have it. If not, the web app opens.'
+      note: 'Opens Fluxgo if you have it. If not, Google Play opens.'
     };
   }
+  if (!IOS_APP_LINKS_LIVE) return { primary: { href: web, label: 'Book on the web' }, secondary: null, note: COMING_SOON_NOTE };
   return {
     primary: { href: web, label: 'Book on the web' },
     secondary: { href: APP_STORE_URL, label: 'Get the iPhone app', apple: true },
@@ -235,10 +243,6 @@ export default async function RidePage({ params }) {
             </dl>
           </section>
         ) : null}
-
-        <p className="fx-share-legal">
-          Sign in with your phone number to book. Check that the host, car, and number plate match the app before you get in.
-        </p>
       </div>
 
       <footer className="fx-share-bar">

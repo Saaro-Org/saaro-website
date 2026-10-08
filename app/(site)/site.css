@@ -714,7 +714,7 @@ body:has(> .fx) { margin: 0; }
 }
 
 /* ───────────────────────── Shared ride page (.fx-share) ───────────────────────── */
-.fx-share { min-height: 100vh; background: var(--paper); padding-bottom: 168px; }
+.fx-share { min-height: 100vh; background: var(--paper); padding-bottom: 140px; }
 .fx-share-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--on-dark); }
 .fx-share-top .fx-wordmark { font-size: 24px; }
 .fx-share-top .fx-mono { color: var(--on-dark-3); }
@@ -769,7 +769,6 @@ body:has(> .fx) { margin: 0; }
 .fx-share-facts dt { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink3); }
 .fx-share-facts dd { margin: 0; font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
 
-.fx-share-legal { padding: 4px 4px 0; font-size: 13px; line-height: 1.5; color: var(--ink3); }
 
 .fx-share-bar { position: fixed; inset: auto 0 0; z-index: 40; padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom)); background: rgba(246, 246, 243, 0.92); backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3); box-shadow: 0 -1px 0 var(--line); }
 .fx-share-bar-inner { width: min(100%, 680px); margin-inline: auto; display: grid; gap: 8px; }

@@ -55,6 +55,7 @@ The reset form accepts the one-time code from the admin email. It also accepts
 
 - `FLUXGO_API_URL`: API base for server fetches. Default `https://api.fluxgo.in`.
 - `NEXT_PUBLIC_FLUXGO_OPEN_HOST_URL`: host for the "Open in app" button. Default `https://go.fluxgo.in`. It must be a different domain from the page, or iOS does not open the app.
-- `NEXT_PUBLIC_FLUXGO_ANDROID_STORE_PUBLIC`: set `true` when the Play listing is public. Until then, Android visitors without the app go to the web app.
+- `NEXT_PUBLIC_FLUXGO_IOS_APP_LINKS_LIVE`: set `true` when the App Store build with shared-link support is live. Until then, iPhone and desktop visitors see **Continue on the web** and an "app is coming soon" note, with no App Store button or Safari app banner on ride pages.
+- `NEXT_PUBLIC_FLUXGO_ANDROID_STORE_PUBLIC`: set `true` when the Play listing is public. Until then, Android visitors see **Continue on the web** and the same note.
 
 `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` let the app open `/ride/*` and `/open/ride/*`. Serve them on `www.fluxgo.in` and `go.fluxgo.in` with no redirect. `/open/ride/:publicId` sends a visitor without the app to the App Store, Google Play, or the web app.
