@@ -243,10 +243,6 @@ export default async function RidePage({ params }) {
             </dl>
           </section>
         ) : null}
-
-        <p className="fx-share-legal">
-          Sign in with your phone number to book. Check that the host, car, and number plate match the app before you get in.
-        </p>
       </div>
 
       <footer className="fx-share-bar">
