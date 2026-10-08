@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_FLUXGO_API_URL || '').replace(/\/+$/, '');
@@ -227,8 +226,16 @@ function LoginScreen({ onLogin, initialResetToken = '', initialNotice = '' }) {
 
   return (
     <main className="admin-auth-page">
+      <aside className="admin-auth-brand" aria-hidden="true">
+        <span className="admin-wordmark">fluxgo<span>.</span></span>
+        <div className="admin-auth-brand-copy">
+          <strong>Operations console</strong>
+          <span>Members, trips, bookings, and support in one place.</span>
+        </div>
+        <svg className="admin-auth-route" viewBox="0 0 400 160" preserveAspectRatio="none"><path d="M10 140 C 110 140, 120 40, 210 56 S 330 130, 390 24" /><circle cx="10" cy="140" r="6" /><circle cx="390" cy="24" r="7" /></svg>
+      </aside>
       <section className="admin-auth-card" aria-labelledby="admin-auth-title">
-        <p className="admin-console-kicker">Flux Go administration</p>
+        <p className="admin-console-kicker">Fluxgo administration</p>
         <h1 id="admin-auth-title">{mode === 'login' ? 'Sign in' : 'Reset password'}</h1>
         {mode === 'login' ? (
           <form className="admin-auth-form" onSubmit={submitLogin}>
@@ -885,7 +892,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
     <main className="admin-console-page">
       <div className="admin-console-shell">
         <aside className="admin-console-sidebar">
-          <div className="admin-console-title"><Image src="/assets/fluxgo-wordmark.png" alt="Flux Go" width={423} height={126} priority /><span>Admin console</span></div>
+          <div className="admin-console-title"><span className="admin-wordmark" role="img" aria-label="Fluxgo">fluxgo<span>.</span></span><span>Admin</span></div>
           <nav aria-label="Admin sections">{SECTION_GROUPS.map((group) => <div className="admin-console-nav-group" key={group.id}><span className="admin-console-nav-label">{group.label}</span>{group.items.map((item) => <button key={item.id} className={section === item.id ? 'is-active' : ''} type="button" onClick={() => setSection(item.id)}>{item.label}</button>)}</div>)}</nav>
           <button className="admin-console-sidebar-logout" type="button" onClick={logout} disabled={actionPending === 'logout'}>{actionPending === 'logout' ? 'Signing out…' : 'Sign out'}</button>
         </aside>
