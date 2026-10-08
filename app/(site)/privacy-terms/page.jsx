@@ -1,7 +1,8 @@
 'use client';
 
 import { Fragment, useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import SiteHeader from '../_components/SiteHeader';
+import SiteFooter from '../_components/SiteFooter';
 
 const TABS = [
   { id: 'privacy-policy', label: 'Privacy Policy', shortLabel: 'Privacy' },
@@ -13,8 +14,8 @@ const privacySections = [
     number: '01',
     title: 'What this policy covers',
     paragraphs: [
-      'This Privacy Policy explains how Flux Go collects, uses, shares, and protects information when you use our website, mobile application, and related services (the “Services”).',
-      'Flux Go helps people find or offer seats in intercity car rides. This policy applies to riders, drivers, visitors, and people who contact our support team.',
+      'This Privacy Policy explains how Fluxgo collects, uses, shares, and protects information when you use our website, mobile application, and related services (the “Services”).',
+      'Fluxgo helps people find or offer seats in intercity car rides. This policy applies to riders, drivers, visitors, and people who contact our support team.',
     ],
   },
   {
@@ -25,9 +26,9 @@ const privacySections = [
       'Account information, such as your name, mobile number, email address when you provide one, profile photo when you choose one, and account preferences.',
       'Verification and vehicle information that we need to check a driver, a vehicle, or a ride before publication.',
       'Trip and booking information, such as route, date, time, seats, luggage, fare, booking status, cancellation, and live-trip details when you use that feature.',
-      'Messages, reports, feedback, and other information that you send to another member or to Flux Go Support.',
+      'Messages, reports, feedback, and other information that you send to another member or to Fluxgo Support.',
       'Device and service information, such as device type, app version, language, crash details, security events, and basic usage records.',
-      'Payment information when a paid feature is available. Our payment provider handles payment credentials. Flux Go receives the transaction status and reference needed to support your booking.',
+      'Payment information when a paid feature is available. Our payment provider handles payment credentials. Fluxgo receives the transaction status and reference needed to support your booking.',
     ],
   },
   {
@@ -48,7 +49,7 @@ const privacySections = [
       'Check accounts, vehicles, and activity. Detect fraud, abuse, unsafe conduct, and technical attacks.',
       'Send service messages about account access, bookings, changes, safety, and support cases.',
       'Fix errors, measure service performance, and improve the design and reliability of the Services.',
-      'Meet legal duties, respond to lawful requests, and protect the rights and safety of members, Flux Go, and the public.',
+      'Meet legal duties, respond to lawful requests, and protect the rights and safety of members, Fluxgo, and the public.',
     ],
   },
   {
@@ -59,7 +60,7 @@ const privacySections = [
       'With a rider or driver, when limited profile and trip details are needed to arrange and complete a booking.',
       'With service providers that host, secure, support, verify, or process payments for the Services. They must follow our instructions and protect the information.',
       'With emergency services, regulators, law enforcement, or other parties when we have a legal duty or a good-faith safety reason.',
-      'With a successor if Flux Go is part of a merger, sale, financing, or other business change. The receiving party must follow applicable privacy duties.',
+      'With a successor if Fluxgo is part of a merger, sale, financing, or other business change. The receiving party must follow applicable privacy duties.',
     ],
     note: 'We do not sell your personal information. We do not share your information for another company’s direct marketing without your permission.',
   },
@@ -75,9 +76,9 @@ const privacySections = [
     number: '07',
     title: 'Your choices and privacy rights',
     paragraphs: [
-      'You can review and correct some account details in the Flux Go app. You can also ask us to access, correct, delete, or restrict use of your personal information, or to withdraw consent where the law allows.',
+      'You can review and correct some account details in the Fluxgo app. You can also ask us to access, correct, delete, or restrict use of your personal information, or to withdraw consent where the law allows.',
       'Some information must remain for safety, fraud prevention, legal, accounting, or dispute reasons. We will explain a refusal when applicable law allows us to do so.',
-      'Open the Flux Go app and choose Profile → Help & Support. Create a ticket with “Privacy request” in the subject, or email support@fluxgo.in. Include the account mobile number so we can verify the request. Do not send passwords or payment credentials.',
+      'Open the Fluxgo app and choose Profile → Help & Support. Create a ticket with “Privacy request” in the subject, or email support@fluxgo.in. Include the account mobile number so we can verify the request. Do not send passwords or payment credentials.',
     ],
   },
   {
@@ -99,7 +100,7 @@ const privacySections = [
     number: '10',
     title: 'Children',
     paragraphs: [
-      'The Services are for people aged 18 or older. We do not knowingly collect personal information from a child. If you believe a child has provided information, contact us through Profile → Help & Support in the Flux Go app.',
+      'The Services are for people aged 18 or older. We do not knowingly collect personal information from a child. If you believe a child has provided information, contact us through Profile → Help & Support in the Fluxgo app.',
     ],
   },
   {
@@ -107,7 +108,7 @@ const privacySections = [
     title: 'Transfers and applicable law',
     paragraphs: [
       'Our service providers may process information in India or another country. When information moves across borders, we use safeguards required by applicable law.',
-      'This policy is a product draft for India. Flux Go will add the final legal entity details, contact details, and any required notices after legal review.',
+      'This policy is a product draft for India. Fluxgo will add the final legal entity details, contact details, and any required notices after legal review.',
     ],
   },
   {
@@ -124,15 +125,15 @@ const termsSections = [
     number: '01',
     title: 'Agreement to these terms',
     paragraphs: [
-      'These Terms and Conditions govern your use of the Flux Go website, mobile application, and related services (the “Services”). By creating an account or using the Services, you agree to these terms.',
+      'These Terms and Conditions govern your use of the Fluxgo website, mobile application, and related services (the “Services”). By creating an account or using the Services, you agree to these terms.',
       'If you do not agree, do not create an account or use the Services. The Privacy Policy forms part of these terms.',
     ],
   },
   {
     number: '02',
-    title: 'What Flux Go provides',
+    title: 'What Fluxgo provides',
     paragraphs: [
-      'Flux Go is a platform that helps drivers offer spare seats and helps riders find intercity car rides. Flux Go is not a taxi operator, carrier, travel agent, or insurer. A driver and a rider are responsible for their own arrangement and conduct.',
+      'Fluxgo is a platform that helps drivers offer spare seats and helps riders find intercity car rides. Fluxgo is not a taxi operator, carrier, travel agent, or insurer. A driver and a rider are responsible for their own arrangement and conduct.',
       'We can add, change, pause, or remove a feature. We do not promise that every route, ride, member, or feature will always be available.',
     ],
   },
@@ -177,7 +178,7 @@ const termsSections = [
     title: 'Safety and emergencies',
     paragraphs: [
       'Use your judgement before and during every ride. Confirm the vehicle and pickup details in the app. Do not enter a vehicle or continue a ride if you feel unsafe.',
-      'Flux Go is not an emergency service. Call local emergency services first when there is immediate danger. Report a safety concern through in-app support as soon as you can. Use the emergency-contact feature when it is available to you.',
+      'Fluxgo is not an emergency service. Call local emergency services first when there is immediate danger. Report a safety concern through in-app support as soon as you can. Use the emergency-contact feature when it is available to you.',
     ],
   },
   {
@@ -190,14 +191,14 @@ const termsSections = [
       'Harass, threaten, abuse, discriminate against, or sexually exploit another person.',
       'Misrepresent your identity, vehicle, route, fare, booking, or reason for travel.',
       'Share an account, scrape the Services, bypass access controls, introduce malicious code, or interfere with the Services.',
-      'Use a ride as a taxi or other commercial service unless Flux Go expressly permits it in writing.',
+      'Use a ride as a taxi or other commercial service unless Fluxgo expressly permits it in writing.',
     ],
   },
   {
     number: '09',
     title: 'Messages, reports, and member content',
     paragraphs: [
-      'You keep ownership of content that you submit. You give Flux Go permission to store, copy, and display that content only as needed to operate, secure, support, and improve the Services.',
+      'You keep ownership of content that you submit. You give Fluxgo permission to store, copy, and display that content only as needed to operate, secure, support, and improve the Services.',
       'Do not send content that is unlawful, false, private, threatening, hateful, or infringing. We may remove content or limit access when we need to protect people or the Services.',
     ],
   },
@@ -211,10 +212,10 @@ const termsSections = [
   },
   {
     number: '11',
-    title: 'Flux Go content and feedback',
+    title: 'Fluxgo content and feedback',
     paragraphs: [
-      'Flux Go and its licensors own the Services, brand, software, design, and other content that we provide. We give you a limited, personal, non-transferable right to use them for their intended purpose.',
-      'If you send ideas or feedback, you allow Flux Go to use them without payment or further permission. This does not transfer ownership of your personal information or member content.',
+      'Fluxgo and its licensors own the Services, brand, software, design, and other content that we provide. We give you a limited, personal, non-transferable right to use them for their intended purpose.',
+      'If you send ideas or feedback, you allow Fluxgo to use them without payment or further permission. This does not transfer ownership of your personal information or member content.',
     ],
   },
   {
@@ -222,8 +223,8 @@ const termsSections = [
     title: 'Disclaimers and liability',
     paragraphs: [
       'To the maximum extent allowed by law, the Services are provided as available. We do not promise that a ride, route, member, vehicle, message, payment, or feature will be safe, accurate, uninterrupted, or available.',
-      'Flux Go does not control a driver’s or rider’s acts, the condition of a vehicle, road conditions, traffic, weather, or events outside our reasonable control. Nothing in these terms removes a right that applicable law does not allow us to remove.',
-      'To the extent allowed by law, Flux Go is not liable for indirect, special, incidental, or consequential loss that results from use of the Services. The final terms must state any required consumer limits after legal review.',
+      'Fluxgo does not control a driver’s or rider’s acts, the condition of a vehicle, road conditions, traffic, weather, or events outside our reasonable control. Nothing in these terms removes a right that applicable law does not allow us to remove.',
+      'To the extent allowed by law, Fluxgo is not liable for indirect, special, incidental, or consequential loss that results from use of the Services. The final terms must state any required consumer limits after legal review.',
     ],
   },
   {
@@ -237,8 +238,8 @@ const termsSections = [
     number: '14',
     title: 'India legal details and contact',
     paragraphs: [
-      'These are draft terms for an India intercity carpooling service. Before publication, Flux Go’s legal team must add the final legal entity name, registered address, governing law, courts or dispute process, and any required consumer notices.',
-      'For questions, requests, or reports, open the Flux Go app and choose Profile → Help & Support, or email support@fluxgo.in. Create a ticket or email with a clear subject. Do not send passwords, one-time codes, or payment credentials.',
+      'These are draft terms for an India intercity carpooling service. Before publication, Fluxgo’s legal team must add the final legal entity name, registered address, governing law, courts or dispute process, and any required consumer notices.',
+      'For questions, requests, or reports, open the Fluxgo app and choose Profile → Help & Support, or email support@fluxgo.in. Create a ticket or email with a clear subject. Do not send passwords, one-time codes, or payment credentials.',
     ],
   },
 ];
@@ -249,7 +250,7 @@ function LegalText({ text }) {
   return chunks.map((chunk, index) => (
     <Fragment key={`support-copy-${index}`}>
       {chunk}
-      {index < chunks.length - 1 && <a href="mailto:support@fluxgo.in">support@fluxgo.in</a>}
+      {index < chunks.length - 1 && <a className="fx-link" href="mailto:support@fluxgo.in">support@fluxgo.in</a>}
     </Fragment>
   ));
 }
@@ -259,10 +260,11 @@ function LegalSection({ section, documentId }) {
   const displayNumber = Number(section.number);
 
   return (
-    <section className="legal-section" aria-labelledby={headingId}>
-      <div className="legal-section-copy">
-        <h3 id={headingId}>
-          <span className="legal-section-number">{displayNumber}.</span> {section.title}
+    <section className="fx-legal-section" id={headingId} aria-labelledby={`${headingId}-title`}>
+      <span className="fx-legal-num fx-mono" aria-hidden="true">{section.number}</span>
+      <div className="fx-legal-copy">
+        <h3 id={`${headingId}-title`}>
+          <span className="fx-sr">{displayNumber}. </span>{section.title}
         </h3>
         {section.paragraphs?.map((paragraph, index) => <p key={`${section.number}-paragraph-${index}`}><LegalText text={paragraph} /></p>)}
         {section.bullets && (
@@ -270,7 +272,7 @@ function LegalSection({ section, documentId }) {
             {section.bullets.map((bullet, index) => <li key={`${section.number}-bullet-${index}`}><LegalText text={bullet} /></li>)}
           </ul>
         )}
-        {section.note && <p className="legal-note"><LegalText text={section.note} /></p>}
+        {section.note && <p className="fx-legal-note"><LegalText text={section.note} /></p>}
       </div>
     </section>
   );
@@ -278,12 +280,9 @@ function LegalSection({ section, documentId }) {
 
 export default function PrivacyTermsPage() {
   const [activeTab, setActiveTab] = useState('privacy-policy');
-  const [year, setYear] = useState('');
   const tabRefs = useRef([]);
 
   useEffect(() => {
-    setYear(String(new Date().getFullYear()));
-
     const syncTabFromHash = () => {
       const hash = window.location.hash.slice(1);
       if (TABS.some((tab) => tab.id === hash)) setActiveTab(hash);
@@ -338,96 +337,93 @@ export default function PrivacyTermsPage() {
     selectTab(id, { scroll: true });
   };
 
+  const sections = activeTab === 'privacy-policy' ? privacySections : termsSections;
+
   return (
-    <div className="legal-page">
-      <a className="skip-link" href="#main-content">Skip to content</a>
+    <>
+      <a className="fx-skip" href="#main-content">Skip to content</a>
+      <SiteHeader solid />
 
-      <header className="legal-header" id="top">
-        <div className="legal-header-inner">
-          <a className="legal-brand" href="/" aria-label="Flux Go home">
-            <Image src="/assets/fluxgo-wordmark.png" alt="Flux Go" width={423} height={126} priority />
-          </a>
-          <a className="legal-back-link" href="/" aria-label="Back to home">Go Back</a>
-        </div>
-      </header>
-
-      <main id="main-content" className="legal-main">
-        <div className="legal-documents">
-          <div className="legal-document-meta" aria-label="Document status">
-            <span>India legal documents</span>
-            <span>Last updated: 18 September 2026</span>
-          </div>
-
-          <div className="legal-tablist" role="tablist" aria-label="Privacy and terms documents">
-            {TABS.map((tab, index) => (
-              <a
-                key={tab.id}
-                ref={(element) => { tabRefs.current[index] = element; }}
-                className="legal-tab"
-                id={`tab-${tab.id}`}
-                href={`#${tab.id}`}
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                aria-controls={tab.id}
-                tabIndex={activeTab === tab.id ? 0 : -1}
-                onClick={(event) => handleAnchorClick(event, tab.id)}
-                onKeyDown={(event) => handleTabKeyDown(event, index)}
-              >
-                {tab.label}
-              </a>
-            ))}
-          </div>
-
-          <div className="legal-review-notice" role="note">
-            <p><strong>Draft notice.</strong> These documents need review by a legal adviser before they become final. The final version must state the legal entity and registered address.</p>
-          </div>
-
-          <section
-            className="legal-panel"
-            id="privacy-policy"
-            role="tabpanel"
-            aria-labelledby="tab-privacy-policy"
-            tabIndex={activeTab === 'privacy-policy' ? 0 : -1}
-            hidden={activeTab !== 'privacy-policy'}
-          >
-            <div className="legal-panel-heading">
-              <h1 id="legal-page-title">Privacy Policy</h1>
-              <p>How Flux Go uses information to provide and protect the Services.</p>
+      <main id="main-content" className="fx-legal">
+        <header className="fx-legal-hero">
+          <div className="fx-wrap">
+            <p className="fx-mono fx-legal-meta"><span>India legal documents</span><span>Last updated: 18 September 2026</span></p>
+            <h1 className="fx-page-title">Privacy &amp; Terms</h1>
+            <div className="fx-legal-tabs" role="tablist" aria-label="Privacy and terms documents">
+              {TABS.map((tab, index) => (
+                <a
+                  key={tab.id}
+                  ref={(element) => { tabRefs.current[index] = element; }}
+                  className="fx-legal-tab"
+                  id={`tab-${tab.id}`}
+                  href={`#${tab.id}`}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={tab.id}
+                  tabIndex={activeTab === tab.id ? 0 : -1}
+                  onClick={(event) => handleAnchorClick(event, tab.id)}
+                  onKeyDown={(event) => handleTabKeyDown(event, index)}
+                >
+                  {tab.label}
+                </a>
+              ))}
             </div>
-            <div className="legal-sections">
+          </div>
+        </header>
+
+        <div className="fx-wrap fx-legal-layout">
+          <aside className="fx-legal-toc" aria-label="On this page">
+            <p className="fx-mono">On this page</p>
+            <ol>
+              {sections.map((section) => (
+                <li key={section.number}>
+                  <a href={`#legal-${activeTab}-section-${section.number}`}><span className="fx-mono">{section.number}</span>{section.title}</a>
+                </li>
+              ))}
+            </ol>
+          </aside>
+
+          <div className="fx-legal-body">
+            <div className="fx-legal-notice" role="note">
+              <p><strong>Draft notice.</strong> These documents need review by a legal adviser before they become final. The final version must state the legal entity and registered address.</p>
+            </div>
+
+            <section
+              className="fx-legal-panel"
+              id="privacy-policy"
+              role="tabpanel"
+              aria-labelledby="tab-privacy-policy"
+              tabIndex={activeTab === 'privacy-policy' ? 0 : -1}
+              hidden={activeTab !== 'privacy-policy'}
+            >
+              <div className="fx-legal-panel-head">
+                <h2 id="legal-page-title">Privacy Policy</h2>
+                <p>How Fluxgo uses information to provide and protect the Services.</p>
+              </div>
               {privacySections.map((section) => <LegalSection key={section.number} documentId="privacy-policy" section={section} />)}
-            </div>
-          </section>
+            </section>
 
-          <section
-            className="legal-panel"
-            id="terms-and-conditions"
-            role="tabpanel"
-            aria-labelledby="tab-terms-and-conditions"
-            tabIndex={activeTab === 'terms-and-conditions' ? 0 : -1}
-            hidden={activeTab !== 'terms-and-conditions'}
-          >
-            <div className="legal-panel-heading">
-              <h1 id="terms-page-title">Terms and Conditions</h1>
-              <p>The rules for using Flux Go and sharing an intercity ride.</p>
-            </div>
-            <div className="legal-sections">
+            <section
+              className="fx-legal-panel"
+              id="terms-and-conditions"
+              role="tabpanel"
+              aria-labelledby="tab-terms-and-conditions"
+              tabIndex={activeTab === 'terms-and-conditions' ? 0 : -1}
+              hidden={activeTab !== 'terms-and-conditions'}
+            >
+              <div className="fx-legal-panel-head">
+                <h2 id="terms-page-title">Terms and Conditions</h2>
+                <p>The rules for using Fluxgo and sharing an intercity ride.</p>
+              </div>
               {termsSections.map((section) => <LegalSection key={section.number} documentId="terms-and-conditions" section={section} />)}
-            </div>
-          </section>
+            </section>
+
+            <p className="fx-legal-contact">Questions about these documents? Email <a className="fx-link" href="mailto:support@fluxgo.in">support@fluxgo.in</a>.</p>
+          </div>
         </div>
       </main>
 
-      <footer className="legal-footer">
-        <div className="container legal-footer-top">
-          <p>Questions about these documents? <a href="mailto:support@fluxgo.in">support@fluxgo.in</a></p>
-          <a className="legal-back-link" href="#top">Back to top ↑</a>
-        </div>
-        <div className="container legal-footer-bottom">
-          <span>© {year} Flux Go</span>
-          <span><a href="#privacy-policy" onClick={(event) => handleAnchorClick(event, 'privacy-policy')}>Privacy Policy</a> · <a href="#terms-and-conditions" onClick={(event) => handleAnchorClick(event, 'terms-and-conditions')}>Terms and Conditions</a></span>
-        </div>
-      </footer>
-    </div>
+      <SiteFooter />
+    </>
   );
 }

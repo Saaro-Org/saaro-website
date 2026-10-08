@@ -1,6 +1,12 @@
-# Flux Go public website
+# Fluxgo public website
 
-This repository contains the Flux Go public landing page built with Next.js.
+This repository contains the Fluxgo public website and the admin portal, built with Next.js.
+
+## Structure
+
+- `app/(site)/` holds the public pages: home, `/support`, and `/privacy-terms`. They share `app/(site)/site.css` and the parts in `app/(site)/_components/`. All public styles sit under the `.fx` root class.
+- `app/admin-portal/` holds the operations console. Its styles are in `app/admin-portal/admin.css` and load only on that route.
+- The public pages use SVG and CSS for all visuals. Colors mirror `fluxgo-frontend/src/constants/tokens.json`.
 
 ## Local development
 

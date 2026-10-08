@@ -1,23 +1,28 @@
-import './globals.css';
-
 export const metadata = {
   metadataBase: new URL('https://fluxgo.in'),
-  title: 'Flux Go — Share the road between cities',
-  description: 'Flux Go helps people find a ride or offer spare seats between Indian cities.',
-  applicationName: 'Flux Go',
-  keywords: ['intercity carpooling', 'shared rides', 'India', 'Flux Go'],
+  title: 'Fluxgo — Intercity carpooling in India',
+  description: 'Find a seat in a car already going to your city, or share the empty seats in yours. Fluxgo is intercity carpooling for India.',
+  applicationName: 'Fluxgo',
+  keywords: ['intercity carpooling', 'carpool India', 'ride sharing between cities', 'Fluxgo'],
   openGraph: {
-    title: 'Flux Go — Share the road between cities',
-    description: 'Reliable intercity carpooling with clear trip details.',
+    title: 'Fluxgo — Someone is already going your way',
+    description: 'Find a seat or share yours on intercity rides across India.',
     url: 'https://fluxgo.in',
-    siteName: 'Flux Go',
+    siteName: 'Fluxgo',
     type: 'website'
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Flux Go — Share the road between cities',
-    description: 'Reliable intercity carpooling with clear trip details.'
+    title: 'Fluxgo — Someone is already going your way',
+    description: 'Find a seat or share yours on intercity rides across India.'
+  },
+  itunes: {
+    appId: '6814678664'
   }
+};
+
+export const viewport = {
+  themeColor: '#102A1B'
 };
 
 export default function RootLayout({ children }) {
