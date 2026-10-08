@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Wordmark from '../../_components/Wordmark';
 import { AppleGlyph } from '../../_components/StoreButtons';
 import { IconArrow, IconBag, IconCalendar, IconClock, IconSeat, IconShield, IconStar } from '../../_components/Icons';
+import { colorizedCarSvg, vehicleColorToHex } from '../../../../lib/vehicle-color';
 import {
   ANDROID_PACKAGE,
   ANDROID_STORE_PUBLIC,
@@ -26,9 +27,8 @@ import {
   rideTime,
   rideTitle,
   rupees,
-  vehicleLine,
-  vehicleMeta,
-  vehicleSwatch
+  titleCase,
+  vehicleName
 } from './ride-data';
 
 export async function generateMetadata({ params }) {
@@ -62,16 +62,17 @@ function Seats({ available, total }) {
   );
 }
 
+const FUEL_LABELS = { PETROL: 'Petrol', DIESEL: 'Diesel', CNG: 'CNG', ELECTRIC: 'Electric', HYBRID: 'Hybrid' };
+const TYPE_LABELS = { HATCHBACK: 'Hatchback', SEDAN: 'Sedan', SUV: 'SUV', MPV: 'MPV' };
+
+/** The app's car artwork, painted in the vehicle colour. The markup is built from fixed artwork and a safe hex value. */
 function CarArt({ color }) {
-  const fill = vehicleSwatch(color);
-  return (
-    <svg className="fx-share-car-art" viewBox="0 0 120 52" aria-hidden="true" focusable="false">
-      <path d="M8 36c0-5 2-8 7-9l14-3 13-11c3-2 6-3 10-3h26c4 0 7 1 10 4l11 10 8 2c5 1 7 4 7 9v5H8z" fill={fill} stroke="rgba(16,42,27,0.28)" strokeWidth="1.2" />
-      <path d="M46 14h14v11H34zM65 14h14c2 0 4 1 5 2l9 9H65z" fill="#DCE8EE" stroke="rgba(16,42,27,0.22)" />
-      <circle cx="31" cy="41" r="8" fill="#1B1B19" /><circle cx="31" cy="41" r="3.4" fill="#C9C9C1" />
-      <circle cx="91" cy="41" r="8" fill="#1B1B19" /><circle cx="91" cy="41" r="3.4" fill="#C9C9C1" />
-    </svg>
-  );
+  return <span className="fx-share-car-art" dangerouslySetInnerHTML={{ __html: colorizedCarSvg(color) }} />;
+}
+
+function WorkEmailBadge({ size = 20 }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className="fx-share-workmail" src="/assets/work-email-verified.png" alt="Work email verified" width={size} height={size} />;
 }
 
 function Avatar({ host }) {
@@ -154,10 +155,9 @@ export default async function RidePage({ params }) {
       <section className="fx-share-hero">
         <header className="fx-share-top">
           <Link href="/" aria-label="Fluxgo home"><Wordmark /></Link>
-          <span className="fx-mono">Shared ride</span>
         </header>
         <div className="fx-share-hero-copy">
-          <p className="fx-mono fx-share-date"><IconCalendar width={16} height={16} />{rideDate(trip.departureAt)} · {rideTime(trip.departureAt)}</p>
+          <p className="fx-share-date"><IconCalendar width={20} height={20} /><span>{rideDate(trip.departureAt)}</span><span className="fx-share-date-dot" aria-hidden="true">·</span><span>{rideTime(trip.departureAt)}</span></p>
           <h1 className="fx-share-title">
             <span>{trip.origin.city}</span>
             <IconArrow width={28} height={28} className="fx-share-title-arrow" />
@@ -187,7 +187,7 @@ export default async function RidePage({ params }) {
             {stops.map((stop) => (
               <li key={stop.key} className={stop.middle ? 'is-middle' : ''}>
                 <span className="fx-share-route-time">{stop.time ?? ''}</span>
-                <span className="fx-share-route-pin" aria-hidden="true" />
+                <span className="fx-share-route-rail" aria-hidden="true"><i className="fx-share-route-pin" /></span>
                 <span className="fx-share-route-place">
                   <strong>{stop.label}</strong>
                   {stop.city && stop.city !== stop.label ? <small>{stop.city}</small> : null}
@@ -199,13 +199,26 @@ export default async function RidePage({ params }) {
         </section>
 
         {trip.vehicle ? (
-          <section className="fx-share-card fx-share-car" aria-label="Car">
-            <CarArt color={trip.vehicle.color} />
-            <div>
-              <p className="fx-mono">The car</p>
-              <h2>{vehicleLine(trip.vehicle)}</h2>
-              {vehicleMeta(trip.vehicle) ? <p>{vehicleMeta(trip.vehicle)}</p> : null}
+          <section className="fx-share-card fx-share-vehicle" aria-label="Vehicle details">
+            <p className="fx-share-label">Vehicle details</p>
+            <div className="fx-share-vehicle-head">
+              <CarArt color={trip.vehicle.color} />
+              <div>
+                <h2>{vehicleName(trip.vehicle)}</h2>
+                {trip.vehicle.color ? (
+                  <p className="fx-share-vehicle-color">
+                    <i style={{ background: vehicleColorToHex(trip.vehicle.color) }} aria-hidden="true" />
+                    {titleCase(trip.vehicle.color)}
+                  </p>
+                ) : null}
+              </div>
             </div>
+            <dl className="fx-share-vehicle-specs">
+              {TYPE_LABELS[trip.vehicle.vehicleType] ? <div><dt>Type</dt><dd>{TYPE_LABELS[trip.vehicle.vehicleType]}</dd></div> : null}
+              {FUEL_LABELS[trip.vehicle.fuelType] ? <div><dt>Fuel</dt><dd>{FUEL_LABELS[trip.vehicle.fuelType]}</dd></div> : null}
+              {trip.vehicle.seatsTotal > 0 ? <div><dt>Max seats</dt><dd>{trip.vehicle.seatsTotal}</dd></div> : null}
+              {trip.host?.vehicleVerified ? <div><dt>Registration</dt><dd className="fx-share-ok"><IconShield width={16} height={16} />Checked</dd></div> : null}
+            </dl>
           </section>
         ) : null}
 
@@ -214,8 +227,8 @@ export default async function RidePage({ params }) {
             <div className="fx-share-host-row">
               <Avatar host={trip.host} />
               <div>
-                <p className="fx-mono">Ride host</p>
-                <h2>{trip.host.displayName}</h2>
+                <p className="fx-share-label">Ride host</p>
+                <h2 className="fx-share-host-name">{trip.host.displayName}{trip.host.workEmailVerified ? <WorkEmailBadge /> : null}</h2>
                 <p className="fx-share-host-stats">
                   <IconStar width={14} height={14} />
                   {trip.host.rating ? trip.host.rating.toFixed(1) : 'New'}
@@ -224,11 +237,8 @@ export default async function RidePage({ params }) {
                 </p>
               </div>
             </div>
-            {trip.host.workEmailVerified || trip.host.vehicleVerified ? (
-              <ul className="fx-share-badges">
-                {trip.host.workEmailVerified ? <li><IconShield width={16} height={16} />Work email verified</li> : null}
-                {trip.host.vehicleVerified ? <li><IconShield width={16} height={16} />Vehicle checked</li> : null}
-              </ul>
+            {trip.host.workEmailVerified ? (
+              <p className="fx-share-legend"><WorkEmailBadge size={18} />This badge means the host verified a corporate email with Fluxgo.</p>
             ) : null}
           </section>
         ) : null}
@@ -248,7 +258,7 @@ export default async function RidePage({ params }) {
       <footer className="fx-share-bar">
         <div className="fx-share-bar-inner">
           {actions.note ? <p className="fx-share-bar-note">{actions.note}</p> : null}
-          <div className="fx-share-bar-actions">
+          <div className={`fx-share-bar-actions${actions.secondary ? '' : ' is-single'}`}>
             <a className="fx-share-btn" href={actions.primary.href}>{actions.primary.label}</a>
             {actions.secondary ? (
               <a className="fx-share-btn fx-share-btn-ghost" href={actions.secondary.href}>
