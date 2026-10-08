@@ -48,3 +48,13 @@ use placeholder queue data.
 
 The reset form accepts the one-time code from the admin email. It also accepts
 `resetToken` in the URL query for a future email-link template.
+
+## Shared ride links
+
+`/ride/:publicId` shows a public ride that a member shared from the app. It reads `GET /v1/public/trips/:publicId` and refreshes the data every 60 s. It has a per-ride preview image and `noindex`.
+
+- `FLUXGO_API_URL`: API base for server fetches. Default `https://api.fluxgo.in`.
+- `NEXT_PUBLIC_FLUXGO_OPEN_HOST_URL`: host for the "Open in app" button. Default `https://go.fluxgo.in`. It must be a different domain from the page, or iOS does not open the app.
+- `NEXT_PUBLIC_FLUXGO_ANDROID_STORE_PUBLIC`: set `true` when the Play listing is public. Until then, Android visitors without the app go to the web app.
+
+`/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` let the app open `/ride/*` and `/open/ride/*`. Serve them on `www.fluxgo.in` and `go.fluxgo.in` with no redirect. `/open/ride/:publicId` sends a visitor without the app to the App Store, Google Play, or the web app.
