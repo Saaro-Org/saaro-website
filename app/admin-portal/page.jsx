@@ -789,7 +789,6 @@ function Console({ admin, onLogout, onSessionExpired }) {
         <DetailField label="Mobile" value={data.mobile} />
         <DetailField label="Personal email" value={data.personalEmail} />
         <DetailField label="Personal email status" value={data.personalEmailStatus} status />
-        <DetailField label="Work email" value={data.workEmail} />
         <DetailField label="Work email status" value={data.workEmailStatus} status />
         <DetailField label="Account status" value={data.status} status />
         <DetailField label="Created" value={formatDate(data.createdAt)} />
