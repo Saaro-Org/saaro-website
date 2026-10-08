@@ -11,6 +11,8 @@ import {
   IconPin, IconSeat, IconShield, IconSwap, IconTick
 } from './_components/Icons';
 
+export const metadata = { alternates: { canonical: '/' } };
+
 const RESULTS = [
   { depart: '06:30', arrive: '11:25', duration: '4h 55m', driver: 'Arjun', rating: '4.9', price: 650, left: 2, instant: true },
   { depart: '09:00', arrive: '14:10', duration: '5h 10m', driver: 'Priya', rating: '4.8', price: 600, left: 1, instant: false, women: true },

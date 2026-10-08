@@ -1,5 +1,5 @@
 export const metadata = {
-  metadataBase: new URL('https://fluxgo.in'),
+  metadataBase: new URL('https://www.fluxgo.in'),
   title: 'Fluxgo — Intercity carpooling in India',
   description: 'Find a seat in a car already going to your city, or share the empty seats in yours. Fluxgo is intercity carpooling for India.',
   applicationName: 'Fluxgo',
@@ -7,7 +7,7 @@ export const metadata = {
   openGraph: {
     title: 'Fluxgo — Someone is already going your way',
     description: 'Find a seat or share yours on intercity rides across India.',
-    url: 'https://fluxgo.in',
+    url: 'https://www.fluxgo.in',
     siteName: 'Fluxgo',
     type: 'website'
   },
