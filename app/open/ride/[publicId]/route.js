@@ -1,5 +1,5 @@
 import { deviceKind, normalizeRideId } from '../../../../lib/app-links';
-import { ANDROID_STORE_PUBLIC, APP_STORE_URL, PLAY_STORE_URL, WEB_APP_URL } from '../../../(site)/_components/links';
+import { ANDROID_STORE_PUBLIC, APP_STORE_URL, IOS_APP_LINKS_LIVE, PLAY_STORE_URL, WEB_APP_URL } from '../../../(site)/_components/links';
 
 /**
  * Target of the "Open in app" button. When the app is installed, the phone
@@ -11,7 +11,7 @@ export async function GET(request, { params }) {
   const id = normalizeRideId(publicId);
   const webTarget = id ? `${WEB_APP_URL}/trip/${id}` : WEB_APP_URL;
   const kind = deviceKind(request.headers.get('user-agent') ?? '');
-  const target = kind === 'ios'
+  const target = kind === 'ios' && IOS_APP_LINKS_LIVE
     ? APP_STORE_URL
     : kind === 'android' && ANDROID_STORE_PUBLIC
       ? PLAY_STORE_URL
