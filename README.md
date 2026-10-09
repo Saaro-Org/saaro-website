@@ -41,10 +41,21 @@ admin bearer token or password. Set `NEXT_PUBLIC_FLUXGO_API_URL` to the
 approved API origin, such as `http://127.0.0.1:3000` for local development or
 the deployed API origin for the hosted website.
 
-The console provides overview counts, member search and details, trip and
-booking inspection, support ticket replies and status changes, admin user
-management, and audit-log search. It uses real `/v1/admin` routes and does not
-use placeholder queue data.
+The console has a Today page (work that needs an admin, 7-day trends), a support
+inbox with owners, internal notes, and templates, and tables for members, rides,
+bookings, safety reports, manual vehicles, and the audit log. Tables support
+column resize, column visibility, server sorting, advanced filters, quick views,
+and CSV export. Record panels link members, rides, bookings, and tickets. Admins
+can suspend or reactivate members, cancel published rides, and send
+notifications. Admins sign in with email only.
+
+The portal does not poll each view. It checks `GET /v1/admin/dashboard/pulse`
+every 60 s (15 s in an open support chat), pauses while the tab is hidden or
+after 10 min without input, and reloads only views whose data changed.
+
+For a local preview with made-up data, run `npm run dev:admin-mock` and start
+`next dev` with `NEXT_PUBLIC_FLUXGO_API_URL=http://localhost:4010`. Sign in with
+`preview@fluxgo.in` and `preview-password`. The mock uses no real data.
 
 The reset form accepts the one-time code from the admin email. It also accepts
 `resetToken` in the URL query for a future email-link template.
