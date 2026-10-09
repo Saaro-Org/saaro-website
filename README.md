@@ -53,6 +53,8 @@ The portal does not poll each view. It checks `GET /v1/admin/dashboard/pulse`
 every 60 s (15 s in an open support chat), pauses while the tab is hidden or
 after 10 min without input, and reloads only views whose data changed.
 
+The portal is an installable web app (`public/admin/manifest.webmanifest`, scope `/admin-portal`). `public/admin-sw.js` only shows admin push notifications and opens the linked page on tap; it does not cache pages or data. Turn notifications on per device in the sidebar under Notifications. On iPhone, push works only after Safari **Add to Home Screen** (iOS 16.4+).
+
 For a local preview with made-up data, run `npm run dev:admin-mock` and start
 `next dev` with `NEXT_PUBLIC_FLUXGO_API_URL=http://localhost:4010`. Sign in with
 `preview@fluxgo.in` and `preview-password`. The mock uses no real data.

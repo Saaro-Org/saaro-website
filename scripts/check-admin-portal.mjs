@@ -40,6 +40,8 @@ const requiredMarkers = [
   'ax-col-resize',
   'table:${tableId}:order',
   'sidebar:collapsed',
+  "requestApi('/admin/push/config')",
+  '/admin-sw.js',
   'ax-nav-tip',
   'onSortChange',
   'ax-filter-panel',

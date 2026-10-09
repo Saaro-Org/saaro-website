@@ -5,6 +5,7 @@ import { AdminsView } from './_components/Admins';
 import { CommandPalette } from './_components/CommandPalette';
 import { RecordPanel } from './_components/Details';
 import { LoginScreen } from './_components/Login';
+import { NotificationsDialog } from './_components/NotificationsDialog';
 import { NotifyView } from './_components/Notify';
 import { RecordsView } from './_components/RecordsView';
 import { SupportInbox } from './_components/Support';
@@ -16,6 +17,7 @@ import { relativeTime } from './_lib/format';
 import { isTypingTarget, useNow, useStoredState } from './_lib/hooks';
 import { LiveProvider, useLive, useLiveRefresh } from './_lib/live';
 import { AdminSessionContext } from './_lib/session';
+import { registerServiceWorker, setAppBadge } from './_lib/push';
 
 const RECORD_KINDS = ['member', 'trip', 'booking', 'support', 'review', 'audit'];
 const GO_KEYS = { t: 'today', s: 'support', f: 'safety', m: 'members', r: 'trips', b: 'bookings', v: 'vehicles', n: 'notify', a: 'audit' };
@@ -52,6 +54,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
   const [admins, setAdmins] = useState([]);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [storedTheme, setTheme] = useStoredState('theme', 'light');
   const [collapsed, setCollapsed] = useStoredState('sidebar:collapsed', false);
@@ -81,6 +84,11 @@ function Console({ admin, onLogout, onSessionExpired }) {
     if (theme === 'dark') root.dataset.theme = 'dark';
     else delete root.dataset.theme;
   }, [theme]);
+
+  // The service worker shows push notifications. It does not cache pages or data.
+  useEffect(() => { void registerServiceWorker(); }, []);
+  // The Home Screen icon shows how many tickets wait for a reply.
+  useEffect(() => { if (attention) setAppBadge(attention.support.awaitingReply); }, [attention]);
 
   useEffect(() => {
     window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
@@ -232,6 +240,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
           </div>
           <div className="ax-sidebar-actions">
             <IconButton icon={theme === 'dark' ? 'sun' : 'moon'} label={theme === 'dark' ? 'Use the light theme' : 'Use the dark theme'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} {...railTip(theme === 'dark' ? 'Light theme' : 'Dark theme')} />
+            <IconButton icon="bell" label="Notifications on this device" onClick={() => setNotificationsOpen(true)} {...railTip('Notifications')} />
             <IconButton icon="keyboard" label="Keyboard shortcuts (?)" onClick={() => setHelpOpen(true)} {...railTip('Keyboard shortcuts', '?')} />
             <IconButton icon="logout" label="Sign out" onClick={logout} {...railTip('Sign out')} />
           </div>
@@ -268,6 +277,8 @@ function Console({ admin, onLogout, onSessionExpired }) {
       <Drawer open={Boolean(top)} onClose={closeRecord} label="Record details" wide={top?.kind === 'support'}>
         {top ? <RecordPanel key={`${top.kind}:${top.id}`} kind={top.kind} id={top.id} seed={top.seed} onClose={closeRecord} onBack={stack.length > 1 ? backRecord : undefined} open={openRecord} navigate={navigate} notify={notify} /> : null}
       </Drawer>
+
+      <NotificationsDialog open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onOpenRecord={openRecord} onNavigate={navigate} />
 

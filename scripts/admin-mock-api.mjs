@@ -149,6 +149,7 @@ for (let index = 0; index < 34; index += 1) {
 audit.sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 
 const sessions = new Set();
+const pushDevices = new Map();
 
 function trend() {
   return Array.from({ length: 7 }, (_, index) => {
@@ -232,6 +233,12 @@ function route(method, path, params, body, authed, admin) {
       admins: { active: admins.length, disabled: 0, total: admins.length },
     }];
   }
+  if (path === '/v1/admin/push/config') return [200, { enabled: true, publicKey: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U', categories: { support: true, safety: true, bookings: true, adminActions: true } }];
+  if (path === '/v1/admin/push/subscription' && method === 'GET') return [200, { subscribed: pushDevices.has(params.get('endpoint')), preferences: pushDevices.get(params.get('endpoint')) || { support: true, safety: true, bookings: true, adminActions: true } }];
+  if (path === '/v1/admin/push/subscription' && method === 'POST') { const prefs = { support: true, safety: true, bookings: true, adminActions: true, ...(body.preferences || {}) }; pushDevices.set(body.endpoint, prefs); return [201, { subscribed: true, preferences: prefs }]; }
+  if (path === '/v1/admin/push/subscription/preferences') { const prefs = { ...(pushDevices.get(body.endpoint) || {}), ...(body.preferences || {}) }; pushDevices.set(body.endpoint, prefs); return [200, { subscribed: true, preferences: prefs }]; }
+  if (path === '/v1/admin/push/subscription/remove') { pushDevices.delete(body.endpoint); return [200, { subscribed: false }]; }
+  if (path === '/v1/admin/push/test') return pushDevices.has(body.endpoint) ? [200, { sent: true }] : [404, { error: { code: 'NOT_FOUND', message: 'This device is not subscribed' } }];
   if (path === '/v1/admin/dashboard/pulse') {
     const newest = (values) => values.filter(Boolean).sort().pop() || null;
     return [200, { generatedAt: new Date().toISOString(), changes: {
