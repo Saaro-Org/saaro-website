@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { formatNumber } from '../_lib/format';
 import { useStoredState } from '../_lib/hooks';
 import { Button, EmptyState, Icon, IconButton, Popover, Skeleton } from './ui';
@@ -12,7 +12,7 @@ export const PAGE_SIZES = [25, 50, 100];
  * A server-paged table.
  * - Drag a header edge to change a column width. Widths are kept per table in this browser.
  * - Click a sortable header to sort. The parent sends the sort to the API.
- * - Use the Columns menu to show or hide columns.
+ * - Use the Columns menu to show, hide, or move columns. Drag a header to move a column.
  */
 export function DataTable({
   tableId,
@@ -38,10 +38,38 @@ export function DataTable({
   const [widths, setWidths] = useStoredState(`table:${tableId}:widths`, {});
   const [hidden, setHidden] = useStoredState(`table:${tableId}:hidden`, null);
   const [density, setDensity] = useStoredState('table:density', 'comfortable');
+  const [order, setOrder] = useStoredState(`table:${tableId}:order`, null);
+  const [dragKey, setDragKey] = useState(null);
+  const [dropKey, setDropKey] = useState(null);
   const bodyRef = useRef(null);
 
+  // Apply the stored order. New columns that the stored order does not know go last.
+  const ordered = useMemo(() => {
+    if (!order?.length) return columns;
+    const rank = new Map(order.map((key, index) => [key, index]));
+    return [...columns].sort((left, right) => (rank.has(left.key) ? rank.get(left.key) : 1000 + columns.indexOf(left)) - (rank.has(right.key) ? rank.get(right.key) : 1000 + columns.indexOf(right)));
+  }, [columns, order]);
   const hiddenKeys = useMemo(() => new Set(hidden ?? columns.filter((column) => column.defaultHidden).map((column) => column.key)), [hidden, columns]);
-  const visible = columns.filter((column) => !hiddenKeys.has(column.key));
+  const visible = ordered.filter((column) => !hiddenKeys.has(column.key));
+
+  const moveColumn = (key, targetKey) => {
+    if (!key || key === targetKey) return;
+    const keys = ordered.map((column) => column.key);
+    const from = keys.indexOf(key);
+    const to = keys.indexOf(targetKey);
+    if (from < 0 || to < 0) return;
+    keys.splice(from, 1);
+    keys.splice(to, 0, key);
+    setOrder(keys);
+  };
+  const stepColumn = (key, step) => {
+    const keys = ordered.map((column) => column.key);
+    const from = keys.indexOf(key);
+    const to = from + step;
+    if (from < 0 || to < 0 || to >= keys.length) return;
+    [keys[from], keys[to]] = [keys[to], keys[from]];
+    setOrder(keys);
+  };
   const tableWidth = visible.reduce((sum, column) => sum + (widths[column.key] || column.width || 160), 0);
 
   const startResize = (event, column) => {
@@ -114,13 +142,20 @@ export function DataTable({
           <Popover label="Table options" trigger={(props) => <Button size="sm" icon="columns" onClick={props.toggle} aria-expanded={props['aria-expanded']}>Columns</Button>}>
             {() => (
               <div className="ax-menu">
-                <p className="ax-menu-label">Show columns</p>
-                {columns.map((column) => (
-                  <label key={column.key} className="ax-menu-check">
-                    <input type="checkbox" checked={!hiddenKeys.has(column.key)} disabled={column.locked} onChange={() => toggleColumn(column.key)} />
-                    <span>{column.label}</span>
-                  </label>
+                <p className="ax-menu-label">Show and order columns</p>
+                {ordered.map((column, index) => (
+                  <div key={column.key} className="ax-menu-column">
+                    <label className="ax-menu-check">
+                      <input type="checkbox" checked={!hiddenKeys.has(column.key)} disabled={column.locked} onChange={() => toggleColumn(column.key)} />
+                      <span>{column.label || 'Actions'}</span>
+                    </label>
+                    <span className="ax-menu-move">
+                      <IconButton icon="chevronUp" size={13} label={`Move ${column.label || 'column'} up`} disabled={index === 0} onClick={() => stepColumn(column.key, -1)} />
+                      <IconButton icon="chevronDown" size={13} label={`Move ${column.label || 'column'} down`} disabled={index === ordered.length - 1} onClick={() => stepColumn(column.key, 1)} />
+                    </span>
+                  </div>
                 ))}
+                <p className="ax-menu-hint">You can also drag a column header.</p>
                 <div className="ax-menu-sep" />
                 <p className="ax-menu-label">Row height</p>
                 <div className="ax-menu-row">
@@ -128,7 +163,7 @@ export function DataTable({
                   <button type="button" className={density === 'compact' ? 'is-active' : ''} onClick={() => setDensity('compact')}>Compact</button>
                 </div>
                 <div className="ax-menu-sep" />
-                <button type="button" className="ax-menu-item" onClick={() => { setWidths({}); setHidden(null); }}>Reset widths and columns</button>
+                <button type="button" className="ax-menu-item" onClick={() => { setWidths({}); setHidden(null); setOrder(null); }}>Reset widths, order, and columns</button>
               </div>
             )}
           </Popover>
@@ -144,14 +179,27 @@ export function DataTable({
                 const active = column.sortKey && sort?.key === column.sortKey;
                 const ariaSort = active ? (sort.order === 'asc' ? 'ascending' : 'descending') : column.sortKey ? 'none' : undefined;
                 return (
-                  <th key={column.key} scope="col" aria-sort={ariaSort} className={`${column.align === 'end' ? 'is-end' : ''}${active ? ' is-sorted' : ''}`}>
+                  <th key={column.key} scope="col" aria-sort={ariaSort}
+                    className={`${column.align === 'end' ? 'is-end' : ''}${active ? ' is-sorted' : ''}${dragKey === column.key ? ' is-dragging' : ''}${dropKey === column.key && dragKey && dragKey !== column.key ? (ordered.findIndex((item) => item.key === dragKey) < ordered.findIndex((item) => item.key === column.key) ? ' is-drop-after' : ' is-drop-before') : ''}`}
+                    draggable
+                    onDragStart={(event) => {
+                      if (event.target.closest?.('.ax-col-resize')) { event.preventDefault(); return; }
+                      setDragKey(column.key);
+                      event.dataTransfer.effectAllowed = 'move';
+                      event.dataTransfer.setData('text/plain', column.key);
+                    }}
+                    onDragOver={(event) => { if (!dragKey) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; if (dropKey !== column.key) setDropKey(column.key); }}
+                    onDragLeave={() => { if (dropKey === column.key) setDropKey(null); }}
+                    onDrop={(event) => { event.preventDefault(); moveColumn(dragKey, column.key); setDragKey(null); setDropKey(null); }}
+                    onDragEnd={() => { setDragKey(null); setDropKey(null); }}
+                    title="Drag to move this column">
                     {column.sortKey ? (
                       <button type="button" className="ax-th-sort" onClick={() => toggleSort(column)} title={`Sort by ${column.label.toLowerCase()}`}>
                         <span>{column.label}</span>
                         <Icon name={active ? (sort.order === 'asc' ? 'sortUp' : 'sortDown') : 'sortNone'} size={12} className="ax-sort-icon" />
                       </button>
                     ) : <span className="ax-th-label">{column.label}</span>}
-                    <span className="ax-col-resize" role="separator" aria-orientation="vertical" aria-label={`Resize ${column.label} column`} tabIndex={0}
+                    <span className="ax-col-resize" draggable={false} role="separator" aria-orientation="vertical" aria-label={`Resize ${column.label} column`} tabIndex={0}
                       onPointerDown={(event) => startResize(event, column)} onKeyDown={(event) => resizeByKey(event, column)}
                       onDoubleClick={() => setWidths((current) => { const next = { ...current }; delete next[column.key]; return next; })} />
                   </th>
