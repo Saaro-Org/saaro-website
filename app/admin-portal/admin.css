@@ -634,6 +634,8 @@ button.ax-mini-item:hover { background: var(--surface-2); }
 .ax-composer-closed { padding: 12px; border-radius: 10px; background: var(--fill); color: var(--ink2); font-size: 13px; text-align: center; }
 .ax-drawer .ax-thread-head { padding-left: 20px; }
 
+.ax-badge-row { display: inline-flex; gap: 6px; align-items: center; }
+
 /* Phase 3 actions */
 .ax-btn.is-danger-text { color: var(--danger); }
 .ax-btn.is-danger-text:hover:not(:disabled) { background: var(--danger-tint); color: var(--danger); }

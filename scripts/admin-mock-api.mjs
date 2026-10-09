@@ -405,6 +405,20 @@ function route(method, path, params, body, authed, admin) {
     list = list.filter((review) => within(review.submittedAt, params.get('submittedFrom'), params.get('submittedTo')));
     return [200, page(list, params, 'submittedAt')];
   }
+  if (path === '/v1/admin/vehicles') {
+    let list = members.flatMap((member) => member.vehicles.map((vehicle) => ({
+      id: vehicle.id, memberId: member.id, memberName: member.name, registrationNumber: vehicle.registrationNumber, make: vehicle.make, model: vehicle.model, color: vehicle.color,
+      vehicleType: vehicle.vehicleType, fuelType: vehicle.fuelType, seatsTotal: vehicle.seatsTotal, status: vehicle.status, verificationStatus: vehicle.verificationStatus,
+      isCommercial: vehicle.isCommercial, provider: vehicle.verificationProvider, isManual: vehicle.verificationProvider === 'manual', rcStatus: vehicle.rcStatus,
+      checkedAt: vehicle.checkedAt, rideCount: trips.filter((trip) => trip.vehicleId === vehicle.id).length, createdAt: member.createdAt,
+    })));
+    list = list.filter((row) => text(params.get('query'), row.registrationNumber, row.make, row.model, row.memberName));
+    if (params.get('source')) list = list.filter((row) => (params.get('source') === 'manual') === row.isManual);
+    if (params.get('verificationStatus')) list = list.filter((row) => row.verificationStatus === params.get('verificationStatus'));
+    if (params.get('status')) list = list.filter((row) => row.status === params.get('status'));
+    list = list.filter((row) => within(row.createdAt, params.get('createdFrom'), params.get('createdTo')));
+    return [200, page(list, params, 'createdAt')];
+  }
   if (path === '/v1/admin/vehicles/manual') {
     const list = params.get('state') ? manualVehicles.filter((vehicle) => vehicle.state === params.get('state')) : manualVehicles;
     return [200, page(list, params)];
