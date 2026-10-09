@@ -54,6 +54,8 @@ function Console({ admin, onLogout, onSessionExpired }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [storedTheme, setTheme] = useStoredState('theme', 'light');
+  const [collapsed, setCollapsed] = useStoredState('sidebar:collapsed', false);
+  const [tip, setTip] = useState(null);
   const theme = storedTheme === 'dark' ? 'dark' : 'light';
   const seeds = useRef(new Map());
   const goPending = useRef(false);
@@ -145,6 +147,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
       if (isTypingTarget(event.target) || event.metaKey || event.ctrlKey || event.altKey) return;
       if (document.querySelector('.ax-overlay')) return;
       if (event.key === '?') { event.preventDefault(); setHelpOpen(true); return; }
+      if (event.key === '[') { event.preventDefault(); setCollapsed((current) => !current); setTip(null); return; }
       if (goPending.current) {
         goPending.current = false;
         const target = GO_KEYS[event.key.toLowerCase()];
@@ -155,7 +158,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [navigate]);
+  }, [navigate, setCollapsed]);
 
   const logout = async () => {
     try { await requestApi('/admin/auth/logout', { method: 'POST' }); } catch { /* sign out locally */ }
@@ -168,6 +171,18 @@ function Console({ admin, onLogout, onSessionExpired }) {
     vehicles: attention?.vehicles.awaitingRecheck,
     bookings: attention?.bookings.awaitingDriver,
   };
+  /** Hover and focus handlers that show a name next to an icon in the collapsed rail. */
+  function railTip(label, extra = null) {
+    if (!label) return {};
+    const show = (event) => {
+      if (!collapsed || window.matchMedia('(max-width: 960px)').matches) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      setTip({ label, extra, top: Math.round(rect.top + rect.height / 2) });
+    };
+    const hide = () => setTip(null);
+    return { onMouseEnter: show, onFocus: show, onMouseLeave: hide, onBlur: hide };
+  }
+
   const meta = SECTION_META[section];
   const top = stack[stack.length - 1];
   const selected = top ? { kind: top.kind, id: top.id } : null;
@@ -176,15 +191,18 @@ function Console({ admin, onLogout, onSessionExpired }) {
 
   return (
     <AdminSessionContext.Provider value={{ admin, admins }}>
-    <div className={`ax-app${navOpen ? ' is-nav-open' : ''}`}>
+    <div className={`ax-app${navOpen ? ' is-nav-open' : ''}${collapsed ? ' is-collapsed' : ''}`}>
       <a className="ax-skip" href="#ax-main">Skip to content</a>
       <aside className="ax-sidebar" aria-label="Admin navigation">
         <div className="ax-sidebar-brand">
-          <span className="ax-wordmark" role="img" aria-label="Fluxgo">fluxgo<span>.</span></span>
+          <span className="ax-wordmark ax-wordmark-full" role="img" aria-label="Fluxgo">fluxgo<span>.</span></span>
+          <span className="ax-wordmark ax-wordmark-mark" aria-hidden="true">f<span>.</span></span>
           <span className="ax-sidebar-tag">Admin</span>
           <IconButton icon="close" label="Close menu" className="ax-nav-close" onClick={() => setNavOpen(false)} />
+          <IconButton icon={collapsed ? 'sidebarExpand' : 'sidebarCollapse'} label={collapsed ? 'Expand the sidebar ([)' : 'Collapse the sidebar ([)'} className="ax-sidebar-toggle"
+            onClick={() => { setCollapsed(!collapsed); setTip(null); }} {...railTip(collapsed ? 'Expand sidebar' : null)} />
         </div>
-        <button type="button" className="ax-sidebar-search" onClick={() => setPaletteOpen(true)}>
+        <button type="button" className="ax-sidebar-search" onClick={() => setPaletteOpen(true)} aria-label="Search (⌘K)" {...railTip('Search', '⌘K')}>
           <Icon name="search" size={15} /><span>Search</span><span className="ax-sidebar-kbd"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
         </button>
         <nav className="ax-nav">
@@ -196,7 +214,8 @@ function Console({ admin, onLogout, onSessionExpired }) {
                 const badge = badges[id];
                 return (
                   <a key={id} href={`?section=${id}`} className={`ax-nav-item${section === id ? ' is-active' : ''}`} aria-current={section === id ? 'page' : undefined}
-                    onClick={(event) => { if (event.metaKey || event.ctrlKey || event.shiftKey) return; event.preventDefault(); navigate(id); }}>
+                    onClick={(event) => { if (event.metaKey || event.ctrlKey || event.shiftKey) return; event.preventDefault(); setTip(null); navigate(id); }}
+                    {...railTip(item.label, badge ? (badge > 99 ? '99+' : String(badge)) : null)}>
                     <Icon name={item.icon} size={17} />
                     <span>{item.label}</span>
                     {badge ? <span className={`ax-nav-badge${id === 'safety' ? ' is-danger' : id === 'support' ? ' is-warning' : ''}`} aria-label={`${badge} need attention`}>{badge > 99 ? '99+' : badge}</span> : null}
@@ -212,13 +231,14 @@ function Console({ admin, onLogout, onSessionExpired }) {
             <span className="ax-me-text"><strong>{admin?.email || admin?.username}</strong><span>Super admin</span></span>
           </div>
           <div className="ax-sidebar-actions">
-            <IconButton icon={theme === 'dark' ? 'sun' : 'moon'} label={theme === 'dark' ? 'Use the light theme' : 'Use the dark theme'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
-            <IconButton icon="keyboard" label="Keyboard shortcuts (?)" onClick={() => setHelpOpen(true)} />
-            <IconButton icon="logout" label="Sign out" onClick={logout} />
+            <IconButton icon={theme === 'dark' ? 'sun' : 'moon'} label={theme === 'dark' ? 'Use the light theme' : 'Use the dark theme'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} {...railTip(theme === 'dark' ? 'Light theme' : 'Dark theme')} />
+            <IconButton icon="keyboard" label="Keyboard shortcuts (?)" onClick={() => setHelpOpen(true)} {...railTip('Keyboard shortcuts', '?')} />
+            <IconButton icon="logout" label="Sign out" onClick={logout} {...railTip('Sign out')} />
           </div>
         </div>
       </aside>
       <div className="ax-nav-scrim" onClick={() => setNavOpen(false)} aria-hidden="true" />
+      {collapsed && tip ? <div className="ax-nav-tip" style={{ top: tip.top }} role="tooltip">{tip.label}{tip.extra ? <span>{tip.extra}</span> : null}</div> : null}
 
       <div className="ax-main" id="ax-main">
         <header className="ax-topbar">
@@ -255,6 +275,7 @@ function Console({ admin, onLogout, onSessionExpired }) {
         <dl className="ax-shortcuts">
           <div><dt><Kbd>⌘</Kbd><Kbd>K</Kbd></dt><dd>Search everything</dd></div>
           <div><dt><Kbd>/</Kbd></dt><dd>Search this list</dd></div>
+          <div><dt><Kbd>[</Kbd></dt><dd>Collapse or expand the sidebar</dd></div>
           <div><dt><Kbd>G</Kbd> then <Kbd>T</Kbd> <Kbd>S</Kbd> <Kbd>F</Kbd> <Kbd>M</Kbd> <Kbd>R</Kbd> <Kbd>B</Kbd> <Kbd>V</Kbd> <Kbd>N</Kbd> <Kbd>A</Kbd></dt><dd>Go to Today, Support, Safety, Members, Rides, Bookings, Vehicles, Notify, Audit</dd></div>
           <div><dt><Kbd>↑</Kbd><Kbd>↓</Kbd> <Kbd>↵</Kbd></dt><dd>Move in a table and open a row</dd></div>
           <div><dt><Kbd>J</Kbd><Kbd>K</Kbd></dt><dd>Next or previous ticket</dd></div>

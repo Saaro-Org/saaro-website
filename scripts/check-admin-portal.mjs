@@ -39,6 +39,8 @@ const requiredMarkers = [
   'Open tickets close automatically after 24 hours without activity.',
   'ax-col-resize',
   'table:${tableId}:order',
+  'sidebar:collapsed',
+  'ax-nav-tip',
   'onSortChange',
   'ax-filter-panel',
   'downloadCsv',
