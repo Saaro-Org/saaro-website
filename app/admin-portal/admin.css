@@ -678,6 +678,25 @@ button.ax-mini-item:hover { background: var(--surface-2); }
 .ax-picker-results button.is-active { background: var(--tint); }
 .ax-picker-results button:disabled { opacity: 0.6; }
 
+/* Notifications settings */
+.ax-push-state { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line-soft); font-size: 13.5px; }
+.ax-push-state.is-on { color: var(--success); background: var(--success-tint); border-color: transparent; justify-content: flex-start; }
+.ax-push-state.is-warn { color: var(--warn); background: var(--warn-tint); border-color: transparent; }
+.ax-push-state.is-info { display: grid; gap: 8px; background: var(--info-tint); border-color: transparent; color: var(--ink); }
+.ax-push-state.is-info ol { margin: 0; padding-left: 18px; list-style: decimal; display: grid; gap: 4px; color: var(--ink2); }
+.ax-push-categories { display: grid; border: 1px solid var(--line-soft); border-radius: 12px; overflow: hidden; }
+.ax-push-category { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; cursor: pointer; }
+.ax-push-category + .ax-push-category { border-top: 1px solid var(--line-soft); }
+.ax-push-category b { display: block; font-size: 13.5px; font-weight: 600; }
+.ax-push-category i { display: block; font-style: normal; font-size: 12.5px; color: var(--ink3); margin-top: 1px; }
+.ax-switch { position: relative; flex: none; width: 34px; height: 20px; margin-top: 1px; }
+.ax-switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.ax-switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--fill-strong); transition: background 0.15s; pointer-events: none; }
+.ax-switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform 0.18s var(--ease); }
+.ax-switch input:checked + span { background: var(--brand); }
+.ax-switch input:checked + span::after { transform: translateX(14px); }
+.ax-switch input:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; }
+
 /* Collapsed sidebar (desktop only). The phone layout uses the slide-out menu. */
 .ax-app { transition: grid-template-columns 0.22s var(--ease); }
 .ax-wordmark-mark { display: none; }

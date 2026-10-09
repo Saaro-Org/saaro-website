@@ -59,6 +59,8 @@ const ERROR_MESSAGES = {
   FORBIDDEN: 'Your admin account cannot do this action.',
   NOT_FOUND: 'We could not find this record.',
   INVALID_REQUEST: 'Check the values and try again.',
+  PUSH_NOT_CONFIGURED: 'Notifications are not set up on the server yet.',
+  PUSH_DELIVERY_FAILED: 'The test notification did not reach this device. Turn notifications off and on again.',
 };
 
 export function errorText(error, fallback = 'The request failed. Try again.') {
