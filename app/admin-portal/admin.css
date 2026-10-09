@@ -214,7 +214,10 @@ body.ax-resizing, body.ax-resizing * { cursor: col-resize !important; user-selec
 
 /* App shell */
 .ax-app { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); min-height: 100vh; }
-.ax-sidebar { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 14px; padding: 18px 12px 12px; background: var(--side); color: var(--side-ink); overflow-y: auto; z-index: 30; }
+.ax-sidebar { position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 14px; padding: 18px 12px 12px; background: var(--side); color: var(--side-ink); overflow: hidden; z-index: 30; }
+/* Only the section list scrolls. The account line and its buttons stay at the bottom. */
+.ax-sidebar .ax-nav { flex: 1 1 auto; min-height: 0; align-content: start; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--side-line) transparent; margin: 0 -12px; padding: 0 12px; }
+.ax-sidebar-brand, .ax-sidebar-search, .ax-sidebar-foot { flex: none; }
 .ax-sidebar-brand { display: flex; align-items: center; gap: 8px; padding: 2px 8px 0; }
 .ax-sidebar-tag { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.08em; color: var(--side-ink-3); padding: 2px 6px; border: 1px solid var(--side-line); border-radius: 6px; }
 .ax-nav-close { display: none; margin-left: auto; color: var(--side-ink-2); }
@@ -233,7 +236,7 @@ body.ax-resizing, body.ax-resizing * { cursor: col-resize !important; user-selec
 .ax-nav-badge { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 999px; background: rgba(233, 240, 234, 0.14); color: var(--side-ink); font-size: 11px; font-weight: 700; }
 .ax-nav-badge.is-warning { background: #F0C46B; color: #3D2A00; }
 .ax-nav-badge.is-danger { background: #F2958A; color: #3E0B06; }
-.ax-sidebar-foot { margin-top: auto; display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--side-line); }
+.ax-sidebar-foot { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--side-line); }
 .ax-me { display: flex; align-items: center; gap: 10px; padding: 0 8px; min-width: 0; }
 .ax-me-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 3px rgba(180, 226, 174, 0.2); flex: none; }
 .ax-me-text { display: grid; min-width: 0; }
@@ -716,7 +719,7 @@ button.ax-mini-item:hover { background: var(--surface-2); }
 }
 @media (max-width: 960px) {
   .ax-app { grid-template-columns: minmax(0, 1fr); }
-  .ax-sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: min(280px, 86vw); transform: translateX(-104%); visibility: hidden; transition: transform 0.24s var(--ease), visibility 0s linear 0.24s; box-shadow: var(--shadow-lg); }
+  .ax-sidebar { position: fixed; left: 0; top: 0; bottom: 0; height: auto; width: min(280px, 86vw); padding-bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-104%); visibility: hidden; transition: transform 0.24s var(--ease), visibility 0s linear 0.24s; box-shadow: var(--shadow-lg); }
   .ax-app.is-nav-open .ax-sidebar { transform: none; visibility: visible; transition: transform 0.24s var(--ease), visibility 0s; }
   .ax-nav-scrim { position: fixed; inset: 0; z-index: 25; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity 0.2s; display: block; }
   .ax-app.is-nav-open .ax-nav-scrim { opacity: 1; pointer-events: auto; }
