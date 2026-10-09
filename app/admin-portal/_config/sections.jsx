@@ -1,0 +1,356 @@
+'use client';
+
+import {
+  auditActionLabel,
+  AUDIT_ACTION_LABELS,
+  dayEndIso,
+  dayStartIso,
+  display,
+  formatDateTime,
+  formatMoney,
+  formatNumber,
+  issueLabel,
+  ISSUE_LABELS,
+  localDay,
+  relativeTime,
+  RESOURCE_LABELS,
+  SAFETY_ISSUES,
+  statusLabel,
+} from '../_lib/format';
+import { Avatar, Badge, Icon, Mono } from '../_components/ui';
+
+export const NAV_GROUPS = [
+  { label: 'Workspace', items: ['today', 'support', 'safety'] },
+  { label: 'Records', items: ['members', 'trips', 'bookings', 'vehicles'] },
+  { label: 'Outreach', items: ['notify'] },
+  { label: 'Administration', items: ['admins', 'audit'] },
+];
+
+export const SECTION_META = {
+  today: { label: 'Today', icon: 'today', description: 'What needs you now' },
+  support: { label: 'Support', icon: 'support', description: 'Member conversations' },
+  safety: { label: 'Safety reports', icon: 'shield', description: 'Reviews with issues' },
+  members: { label: 'Members', icon: 'members', description: 'Accounts and verification' },
+  trips: { label: 'Rides', icon: 'rides', description: 'Published rides' },
+  bookings: { label: 'Bookings', icon: 'bookings', description: 'Seat bookings' },
+  vehicles: { label: 'Vehicles', icon: 'vehicles', description: 'Manual vehicle rechecks' },
+  notify: { label: 'Send notification', icon: 'bell', description: 'Offers and updates' },
+  admins: { label: 'Admin users', icon: 'admins', description: 'Console access' },
+  audit: { label: 'Audit log', icon: 'audit', description: 'Every admin action' },
+};
+
+export const SECTION_IDS = Object.keys(SECTION_META);
+
+/** A name that opens a record panel. */
+export function RecordLink({ children, onOpen, title }) {
+  if (!onOpen) return <span>{children}</span>;
+  return <button type="button" className="ax-link" title={title} onClick={(event) => { event.stopPropagation(); onOpen(); }}>{children}</button>;
+}
+
+function When({ value, now }) {
+  if (!value) return <span className="ax-muted">—</span>;
+  return <span className="ax-when" title={formatDateTime(value)}><span>{formatDateTime(value)}</span><small>{relativeTime(value, now)}</small></span>;
+}
+
+function Seats({ total, available }) {
+  const booked = Math.max(0, Number(total || 0) - Number(available || 0));
+  const ratio = total ? booked / total : 0;
+  return (
+    <span className="ax-seats" title={`${booked} of ${total} seats booked`}>
+      <span className="ax-seats-bar" aria-hidden="true"><span style={{ width: `${Math.round(ratio * 100)}%` }} /></span>
+      <span>{booked}/{total}</span>
+    </span>
+  );
+}
+
+export function Stars({ rating }) {
+  const value = Number(rating) || 0;
+  return (
+    <span className={`ax-stars${value <= 2 ? ' is-low' : ''}`} aria-label={`${value} out of 5`} title={`${value} out of 5`}>
+      <Icon name="star" size={13} /><strong>{value}</strong><span className="ax-muted">/5</span>
+    </span>
+  );
+}
+
+export function IssueChips({ codes = [], limit = 3 }) {
+  if (!codes.length) return <span className="ax-muted">None</span>;
+  const shown = codes.slice(0, limit);
+  return (
+    <span className="ax-issue-list">
+      {shown.map((code) => <span key={code} className={`ax-issue${SAFETY_ISSUES.has(code) ? ' is-safety' : ''}`}>{SAFETY_ISSUES.has(code) ? <Icon name="alert" size={11} /> : null}{issueLabel(code)}</span>)}
+      {codes.length > limit ? <span className="ax-issue is-more">+{codes.length - limit}</span> : null}
+    </span>
+  );
+}
+
+function statusOptions(values) {
+  return values.map((value) => ({ value, label: statusLabel(value) }));
+}
+
+function dateParams(filters, fromKey, toKey, apiFrom, apiTo) {
+  return { [apiFrom]: dayStartIso(filters[fromKey]), [apiTo]: dayEndIso(filters[toKey]) };
+}
+
+const today = () => localDay(0);
+const weekAgo = () => localDay(-6);
+
+/** List sections that use the shared record table. */
+export const RECORD_SECTIONS = {
+  members: {
+    label: 'Members',
+    endpoint: '/admin/members',
+    liveKeys: ['members', 'trips', 'vehicles'],
+    detailKind: 'member',
+    searchPlaceholder: 'Name, mobile, email, or member ID',
+    defaultSort: { key: 'createdAt', order: 'desc' },
+    filters: [
+      { type: 'select', key: 'status', label: 'Account', options: statusOptions(['ACTIVE', 'SUSPENDED', 'DELETED']), primary: true, anyLabel: 'All accounts' },
+      { type: 'select', key: 'workEmailStatus', label: 'Work email', options: [...statusOptions(['VERIFIED', 'PENDING', 'REVOKED']), { value: 'NONE', label: 'Not added' }] },
+      { type: 'boolean', key: 'hasVehicle', label: 'Vehicle', yes: 'Has a vehicle', no: 'No vehicle' },
+      { type: 'select', key: 'intent', label: 'Joined to', options: statusOptions(['TAKE_RIDE', 'PUBLISH_RIDE']) },
+      { type: 'dateRange', key: 'joined', label: 'Joined', fromKey: 'joinedFrom', toKey: 'joinedTo' },
+    ],
+    presets: [
+      { label: 'Joined this week', filters: { joinedFrom: weekAgo } },
+      { label: 'Drivers', filters: { hasVehicle: 'true' } },
+      { label: 'Work email verified', filters: { workEmailStatus: 'VERIFIED' } },
+      { label: 'No work email', filters: { workEmailStatus: 'NONE' } },
+      { label: 'Suspended', filters: { status: 'SUSPENDED' } },
+    ],
+    toParams: (filters) => ({
+      query: filters.query,
+      status: filters.status,
+      workEmailStatus: filters.workEmailStatus,
+      hasVehicle: filters.hasVehicle,
+      intent: filters.intent,
+      ...dateParams(filters, 'joinedFrom', 'joinedTo', 'createdFrom', 'createdTo'),
+    }),
+    columns: ({ now }) => [
+      { key: 'name', label: 'Member', width: 230, locked: true, sortKey: 'name', defaultOrder: 'asc', render: (row) => <span className="ax-person"><Avatar name={row.name} size="sm" /><span><strong>{display(row.name)}</strong></span></span>, csv: (row) => row.name },
+      { key: 'mobile', label: 'Mobile', width: 190, render: (row) => <Mono value={row.mobile} /> },
+      { key: 'personalEmail', label: 'Email', width: 210, render: (row) => row.personalEmail ? <span className="ax-truncate" title={row.personalEmail}>{row.personalEmail}</span> : <span className="ax-muted">—</span> },
+      { key: 'status', label: 'Account', width: 120, render: (row) => <Badge value={row.status} /> },
+      { key: 'workEmailStatus', label: 'Work email', width: 130, render: (row) => row.workEmailStatus ? <Badge value={row.workEmailStatus} /> : <span className="ax-muted">Not added</span> },
+      { key: 'vehicleCount', label: 'Vehicles', width: 100, align: 'end', sortKey: 'vehicleCount', render: (row) => formatNumber(row.vehicleCount) },
+      { key: 'tripCount', label: 'Rides', width: 90, align: 'end', sortKey: 'tripCount', render: (row) => formatNumber(row.tripCount) },
+      { key: 'createdAt', label: 'Joined', width: 170, sortKey: 'createdAt', render: (row) => <When value={row.createdAt} now={now} />, csv: (row) => row.createdAt },
+      { key: 'updatedAt', label: 'Updated', width: 170, sortKey: 'updatedAt', defaultHidden: true, render: (row) => <When value={row.updatedAt} now={now} />, csv: (row) => row.updatedAt },
+      { key: 'id', label: 'Member ID', width: 300, defaultHidden: true, render: (row) => <Mono value={row.id} /> },
+    ],
+  },
+  trips: {
+    label: 'Rides',
+    endpoint: '/admin/trips',
+    liveKeys: ['trips', 'bookings'],
+    detailKind: 'trip',
+    searchPlaceholder: 'Reference, city, driver name, or mobile',
+    defaultSort: { key: 'departureAt', order: 'desc' },
+    filters: [
+      { type: 'select', key: 'status', label: 'Status', options: statusOptions(['PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'DRAFT']), primary: true, anyLabel: 'All statuses' },
+      { type: 'dateRange', key: 'departure', label: 'Departure', fromKey: 'departFrom', toKey: 'departTo' },
+      { type: 'text', key: 'originCity', label: 'From', placeholder: 'City or place' },
+      { type: 'text', key: 'destinationCity', label: 'To', placeholder: 'City or place' },
+      { type: 'select', key: 'bookingMode', label: 'Booking mode', options: statusOptions(['INSTANT', 'REQUEST']) },
+      { type: 'boolean', key: 'hasBookings', label: 'Bookings', yes: 'Has bookings', no: 'No bookings' },
+      { type: 'entity', key: 'driverUserId', label: 'Driver', labelKey: 'driverName' },
+    ],
+    presets: [
+      { label: 'Departing today', filters: { departFrom: today, departTo: today } },
+      { label: 'Live now', filters: { status: 'IN_PROGRESS' } },
+      { label: 'Upcoming', filters: { status: 'PUBLISHED', departFrom: today } },
+      { label: 'Upcoming, no bookings', filters: { status: 'PUBLISHED', departFrom: today, hasBookings: 'false' } },
+      { label: 'Cancelled this week', filters: { status: 'CANCELLED', departFrom: weekAgo } },
+    ],
+    toParams: (filters) => ({
+      query: filters.query,
+      status: filters.status,
+      originCity: filters.originCity,
+      destinationCity: filters.destinationCity,
+      bookingMode: filters.bookingMode,
+      hasBookings: filters.hasBookings,
+      driverUserId: filters.driverUserId,
+      ...dateParams(filters, 'departFrom', 'departTo', 'departureFrom', 'departureTo'),
+    }),
+    columns: ({ now, open }) => [
+      { key: 'publicId', label: 'Reference', width: 150, locked: true, render: (row) => <Mono value={row.publicId} /> },
+      { key: 'route', label: 'Route', width: 280, render: (row) => <span className="ax-route" title={`${row.origin} → ${row.destination}`}><span>{row.origin}</span><Icon name="arrowRight" size={12} /><span>{row.destination}</span></span>, csv: (row) => `${row.origin} → ${row.destination}` },
+      { key: 'driverName', label: 'Driver', width: 170, render: (row) => <RecordLink onOpen={() => open('member', row.driverUserId)}>{display(row.driverName)}</RecordLink> },
+      { key: 'departureAt', label: 'Departure', width: 180, sortKey: 'departureAt', render: (row) => <When value={row.departureAt} now={now} />, csv: (row) => row.departureAt },
+      { key: 'status', label: 'Status', width: 130, render: (row) => <Badge value={row.status} /> },
+      { key: 'seats', label: 'Seats booked', width: 140, sortKey: 'seatsAvailable', defaultOrder: 'asc', render: (row) => <Seats total={row.seatsTotal} available={row.seatsAvailable} />, csv: (row) => `${row.seatsTotal - row.seatsAvailable}/${row.seatsTotal}` },
+      { key: 'bookingCount', label: 'Bookings', width: 100, align: 'end', sortKey: 'bookingCount', render: (row) => formatNumber(row.bookingCount) },
+      { key: 'pricePerSeat', label: 'Fare / seat', width: 110, align: 'end', sortKey: 'pricePerSeat', render: (row) => formatMoney(row.pricePerSeat) },
+      { key: 'bookingMode', label: 'Mode', width: 110, render: (row) => <Badge value={row.bookingMode} tone="neutral" dot={false} /> },
+      { key: 'createdAt', label: 'Published', width: 170, sortKey: 'createdAt', defaultHidden: true, render: (row) => <When value={row.createdAt} now={now} />, csv: (row) => row.createdAt },
+    ],
+  },
+  bookings: {
+    label: 'Bookings',
+    endpoint: '/admin/bookings',
+    liveKeys: ['bookings', 'trips'],
+    detailKind: 'booking',
+    searchPlaceholder: 'Booking or ride reference, booker name, or mobile',
+    defaultSort: { key: 'createdAt', order: 'desc' },
+    filters: [
+      { type: 'select', key: 'status', label: 'Status', options: statusOptions(['REQUESTED', 'CONFIRMED', 'IN_RIDE', 'COMPLETED', 'REJECTED', 'CANCELLED_BY_PASSENGER', 'CANCELLED_BY_DRIVER', 'PAYMENT_PENDING']), primary: true, anyLabel: 'All statuses' },
+      { type: 'dateRange', key: 'booked', label: 'Booked', fromKey: 'bookedFrom', toKey: 'bookedTo' },
+      { type: 'dateRange', key: 'departure', label: 'Ride departure', fromKey: 'departFrom', toKey: 'departTo' },
+      { type: 'entity', key: 'memberId', label: 'Booker', labelKey: 'memberName' },
+      { type: 'entity', key: 'tripId', label: 'Ride', labelKey: 'tripRef' },
+    ],
+    presets: [
+      { label: 'Waiting for driver', filters: { status: 'REQUESTED' } },
+      { label: 'Confirmed, upcoming', filters: { status: 'CONFIRMED', departFrom: today } },
+      { label: 'Booked today', filters: { bookedFrom: today, bookedTo: today } },
+      { label: 'Cancelled by driver', filters: { status: 'CANCELLED_BY_DRIVER' } },
+    ],
+    toParams: (filters) => ({
+      query: filters.query,
+      status: filters.status,
+      memberId: filters.memberId,
+      tripId: filters.tripId,
+      ...dateParams(filters, 'bookedFrom', 'bookedTo', 'createdFrom', 'createdTo'),
+      ...dateParams(filters, 'departFrom', 'departTo', 'departureFrom', 'departureTo'),
+    }),
+    columns: ({ now, open }) => [
+      { key: 'publicId', label: 'Reference', width: 150, locked: true, render: (row) => <Mono value={row.publicId} /> },
+      { key: 'tripPublicId', label: 'Ride', width: 150, render: (row) => <RecordLink onOpen={() => open('trip', row.tripId)} title="Open ride"><span className="ax-mono">{row.tripPublicId}</span></RecordLink> },
+      { key: 'route', label: 'Pickup → drop', width: 230, render: (row) => <span className="ax-truncate" title={row.route}>{row.route.replace(' to ', ' → ')}</span> },
+      { key: 'bookedByName', label: 'Booker', width: 170, render: (row) => <RecordLink onOpen={() => open('member', row.bookedByUserId)}>{display(row.bookedByName)}</RecordLink> },
+      { key: 'passengerCount', label: 'Seats', width: 80, align: 'end', sortKey: 'passengerCount', render: (row) => formatNumber(row.passengerCount) },
+      { key: 'status', label: 'Status', width: 170, render: (row) => <Badge value={row.status} /> },
+      { key: 'totalPrice', label: 'Total', width: 100, align: 'end', sortKey: 'totalPrice', render: (row) => formatMoney(row.totalPrice) },
+      { key: 'tripDepartureAt', label: 'Departure', width: 180, sortKey: 'departureAt', render: (row) => <When value={row.tripDepartureAt} now={now} />, csv: (row) => row.tripDepartureAt },
+      { key: 'createdAt', label: 'Booked', width: 170, sortKey: 'createdAt', render: (row) => <When value={row.createdAt} now={now} />, csv: (row) => row.createdAt },
+      { key: 'paymentStatus', label: 'Payment', width: 130, defaultHidden: true, render: (row) => <Badge value={row.paymentStatus} tone="neutral" dot={false} /> },
+    ],
+  },
+  safety: {
+    label: 'Safety reports',
+    endpoint: '/admin/reviews',
+    liveKeys: ['reviews'],
+    detailKind: 'review',
+    search: false,
+    defaultSort: { key: 'submittedAt', order: 'desc' },
+    defaultFilters: { issues: 'SAFETY' },
+    filters: [
+      { type: 'select', key: 'issues', label: 'Show', options: [{ value: 'SAFETY', label: 'Safety issues' }, { value: 'ANY', label: 'Any issue' }], primary: true, anyLabel: 'All reviews' },
+      { type: 'select', key: 'issueCode', label: 'Issue', options: Object.keys(ISSUE_LABELS).map((code) => ({ value: code, label: issueLabel(code) })) },
+      { type: 'select', key: 'maxRating', label: 'Rating', options: [1, 2, 3, 4].map((value) => ({ value: String(value), label: `${value} star${value === 1 ? '' : 's'} or lower` })) },
+      { type: 'select', key: 'direction', label: 'Written by', options: [{ value: 'PASSENGER_TO_DRIVER', label: 'Passengers about drivers' }, { value: 'DRIVER_TO_PASSENGER', label: 'Drivers about passengers' }] },
+      { type: 'dateRange', key: 'submitted', label: 'Submitted', fromKey: 'submittedFrom', toKey: 'submittedTo' },
+      { type: 'entity', key: 'memberId', label: 'Member', labelKey: 'memberName' },
+    ],
+    presets: [
+      { label: 'Safety, this week', filters: { issues: 'SAFETY', submittedFrom: weekAgo } },
+      { label: 'Rash driving', filters: { issues: 'SAFETY', issueCode: 'RASH_DRIVING' } },
+      { label: 'Abusive behaviour', filters: { issues: 'SAFETY', issueCode: 'DISRESPECTFUL_OR_ABUSIVE_BEHAVIOUR' } },
+      { label: 'No-shows', filters: { issues: 'ANY', issueCode: 'NO_SHOW' } },
+      { label: '1–2 stars', filters: { maxRating: '2' } },
+    ],
+    toParams: (filters) => ({
+      issues: filters.issues,
+      issueCode: filters.issueCode,
+      maxRating: filters.maxRating,
+      direction: filters.direction,
+      memberId: filters.memberId,
+      ...dateParams(filters, 'submittedFrom', 'submittedTo', 'submittedFrom', 'submittedTo'),
+    }),
+    columns: ({ now, open }) => [
+      { key: 'submittedAt', label: 'Submitted', width: 170, sortKey: 'submittedAt', render: (row) => <When value={row.submittedAt} now={now} />, csv: (row) => row.submittedAt },
+      { key: 'rating', label: 'Rating', width: 90, sortKey: 'rating', defaultOrder: 'asc', render: (row) => <Stars rating={row.rating} /> },
+      { key: 'issueCodes', label: 'Issues', width: 330, render: (row) => <IssueChips codes={row.issueCodes} />, csv: (row) => row.issueCodes.map(issueLabel).join('; ') },
+      { key: 'reviewerName', label: 'From', width: 160, render: (row) => <RecordLink onOpen={() => open('member', row.reviewerUserId)}>{display(row.reviewerName)}</RecordLink> },
+      { key: 'revieweeName', label: 'About', width: 160, render: (row) => <RecordLink onOpen={() => open('member', row.revieweeUserId)}>{display(row.revieweeName)}</RecordLink> },
+      { key: 'direction', label: 'Direction', width: 170, defaultHidden: true, render: (row) => statusLabel(row.direction) },
+      { key: 'comment', label: 'Comment', width: 280, render: (row) => row.comment ? <span className="ax-truncate" title={row.comment}>{row.comment}</span> : <span className="ax-muted">No comment</span> },
+      { key: 'tripPublicId', label: 'Ride', width: 150, render: (row) => <RecordLink onOpen={() => open('trip', row.tripId)}><span className="ax-mono">{row.tripPublicId}</span></RecordLink> },
+      { key: 'isVisible', label: 'Members see it', width: 150, render: (row) => row.isVisible ? <Badge tone="neutral">Visible</Badge> : <Badge tone="warning" title={`Visible from ${formatDateTime(row.visibleAt)}`}>From {relativeTime(row.visibleAt, now).replace('in ', '')}</Badge>, csv: (row) => (row.isVisible ? 'Visible' : `From ${row.visibleAt}`) },
+    ],
+  },
+  vehicles: {
+    label: 'Vehicles',
+    endpoint: '/admin/vehicles/manual',
+    liveKeys: ['vehicles'],
+    detailKind: null,
+    search: false,
+    getRowId: (row) => row.manualVerificationId,
+    defaultFilters: { state: 'AWAITING_RECHECK' },
+    filters: [
+      { type: 'select', key: 'state', label: 'Show', options: [{ value: 'AWAITING_RECHECK', label: 'Awaiting recheck' }], primary: true, anyLabel: 'All manual vehicles' },
+    ],
+    toParams: (filters) => ({ state: filters.state }),
+    columns: ({ now, open }) => [
+      { key: 'registrationNumber', label: 'Registration', width: 150, locked: true, render: (row) => <Mono value={row.registrationNumber} /> },
+      { key: 'vehicle', label: 'Vehicle', width: 220, render: (row) => <span><strong>{row.make} {row.model}</strong>{row.color ? <span className="ax-muted"> · {row.color}</span> : null}</span>, csv: (row) => `${row.make} ${row.model}` },
+      { key: 'vehicleType', label: 'Type', width: 140, render: (row) => <span className="ax-muted">{statusLabel(row.vehicleType)} · {statusLabel(row.fuelType)}</span> },
+      { key: 'seats', label: 'Seats', width: 80, align: 'end' },
+      { key: 'memberName', label: 'Member', width: 170, render: (row) => <RecordLink onOpen={() => open('member', row.memberId)}>{display(row.memberName)}</RecordLink> },
+      { key: 'enteredAt', label: 'Added', width: 170, render: (row) => <When value={row.enteredAt} now={now} />, csv: (row) => row.enteredAt },
+      { key: 'lastRecheckAt', label: 'Last check', width: 170, render: (row) => <When value={row.lastRecheckAt} now={now} />, csv: (row) => row.lastRecheckAt },
+      { key: 'lastRecheckResult', label: 'Last result', width: 180, render: (row) => row.lastRecheckResult ? <span className="ax-mono ax-small">{row.lastRecheckResult}</span> : <span className="ax-muted">—</span> },
+      { key: 'state', label: 'State', width: 150, render: (row) => <Badge value={row.state} /> },
+    ],
+  },
+  audit: {
+    label: 'Audit log',
+    endpoint: '/admin/audit',
+    liveKeys: ['audit'],
+    detailKind: 'audit',
+    search: false,
+    defaultSort: { key: 'createdAt', order: 'desc' },
+    filters: [
+      { type: 'select', key: 'action', label: 'Action', options: Object.keys(AUDIT_ACTION_LABELS).map((value) => ({ value, label: auditActionLabel(value) })), primary: true, anyLabel: 'All actions' },
+      { type: 'select', key: 'adminUserId', label: 'Admin', options: [], dynamic: 'admins' },
+      { type: 'select', key: 'resourceType', label: 'Record type', options: Object.entries(RESOURCE_LABELS).filter(([key]) => ['admin_user', 'support_ticket', 'notification_event', 'user', 'trip'].includes(key)).map(([value, label]) => ({ value, label })) },
+      { type: 'dateRange', key: 'created', label: 'Date', fromKey: 'from', toKey: 'to' },
+      { type: 'text', key: 'resourceId', label: 'Record ID', placeholder: 'Exact ID' },
+    ],
+    presets: [
+      { label: 'Today', filters: { from: today, to: today } },
+      { label: 'Notifications sent', filters: { action: 'NOTIFICATION_PUBLISHED' } },
+      { label: 'Support replies', filters: { action: 'SUPPORT_TICKET_REPLIED' } },
+      { label: 'Suspensions', filters: { action: 'MEMBER_SUSPENDED' } },
+      { label: 'Cancelled rides', filters: { action: 'TRIP_CANCELLED_BY_ADMIN' } },
+      { label: 'Sign-ins', filters: { action: 'ADMIN_LOGIN' } },
+    ],
+    toParams: (filters, sort) => ({
+      action: filters.action,
+      adminUserId: filters.adminUserId,
+      resourceType: filters.resourceType,
+      resourceId: filters.resourceId,
+      ...dateParams(filters, 'from', 'to', 'createdFrom', 'createdTo'),
+      order: sort?.order,
+      sort: undefined,
+    }),
+    columns: ({ now, open }) => [
+      { key: 'createdAt', label: 'Time', width: 170, sortKey: 'createdAt', render: (row) => <When value={row.createdAt} now={now} />, csv: (row) => row.createdAt },
+      { key: 'adminUsername', label: 'Admin', width: 200, render: (row) => <span className="ax-truncate">{display(row.adminUsername)}</span> },
+      { key: 'action', label: 'Action', width: 210, render: (row) => <strong>{auditActionLabel(row.action)}</strong>, csv: (row) => row.action },
+      { key: 'resource', label: 'Record', width: 220, render: (row) => <AuditResource row={row} open={open} />, csv: (row) => `${row.resourceType}:${row.resourceId || ''}` },
+      { key: 'reason', label: 'Reason or details', width: 260, render: (row) => <span className="ax-truncate">{auditDetails(row)}</span>, csv: (row) => auditDetails(row) },
+      { key: 'ipAddress', label: 'IP address', width: 140, defaultHidden: true, render: (row) => <span className="ax-mono ax-small">{display(row.ipAddress)}</span> },
+    ],
+  },
+};
+
+export function auditDetails(row) {
+  if (row.reason) return row.reason;
+  const meta = row.metadata || {};
+  if (row.action === 'NOTIFICATION_PUBLISHED') return `${formatNumber(meta.recipientCount)} recipients · ${statusLabel(meta.kind)}${meta.push === false ? ' · in-app only' : ' · push'}`;
+  return '—';
+}
+
+function AuditResource({ row, open }) {
+  const label = RESOURCE_LABELS[row.resourceType] || statusLabel(row.resourceType);
+  const kind = { support_ticket: 'support', user: 'member', trip: 'trip' }[row.resourceType];
+  const openable = kind && row.resourceId;
+  return (
+    <span className="ax-resource">
+      <span className="ax-muted">{label}</span>
+      {row.resourceId ? (openable
+        ? <RecordLink onOpen={() => open(kind, row.resourceId)}><span className="ax-mono ax-small">{row.resourceId.slice(0, 8)}…</span></RecordLink>
+        : <span className="ax-mono ax-small" title={row.resourceId}>{row.resourceId.length > 18 ? `${row.resourceId.slice(0, 16)}…` : row.resourceId}</span>) : null}
+    </span>
+  );
+}
