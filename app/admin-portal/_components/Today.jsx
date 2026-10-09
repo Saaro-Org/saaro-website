@@ -103,7 +103,7 @@ export function TodayView({ admin, openRecord, navigate, onAttention }) {
           detail={attention ? `${plural(attention.reviews.issueReportsLast7Days, 'review')} with any issue` : null}
           action="Review reports" onClick={() => navigate('safety', { issues: 'SAFETY', submittedFrom: weekAgoKey() })} />
         <CountCard icon="vehicles" title="Vehicles awaiting a recheck" count={attention?.vehicles.awaitingRecheck} loading={!attention}
-          detail="Added by hand. The system rechecks them every 6 hours." action="Open vehicles" onClick={() => navigate('vehicles', { state: 'AWAITING_RECHECK' })} />
+          detail="Added by hand. The system rechecks them every 6 hours." action="Open vehicles" onClick={() => navigate('vehicles', { source: 'manual', status: 'ACTIVE' })} />
       </div>
 
       <h3 className="ax-group-title">Last 7 days</h3>

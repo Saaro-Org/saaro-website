@@ -31,7 +31,7 @@ const requiredMarkers = [
   "'/admin/bookings'",
   "'/admin/support/tickets",
   "'/admin/reviews'",
-  "'/admin/vehicles/manual'",
+  "'/admin/vehicles'",
   "'/admin/notifications'",
   "'/admin/audit'",
   "requestApi('/admin/users'",
