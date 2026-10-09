@@ -33,6 +33,8 @@ const ICON_PATHS = {
   sortNone: 'M12 4l4 5H8zM12 20l-4-5h8z',
   chevronDown: 'M6 9l6 6 6-6',
   chevronUp: 'M6 15l6-6 6 6',
+  sidebarCollapse: 'M4 5h16v14H4zM9 5v14M16 10l-2 2 2 2',
+  sidebarExpand: 'M4 5h16v14H4zM9 5v14M13 10l2 2-2 2',
   chevronRight: 'M9 6l6 6-6 6',
   moon: 'M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z',
   sun: 'M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6L4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z',
