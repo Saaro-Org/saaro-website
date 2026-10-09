@@ -38,6 +38,7 @@ const requiredMarkers = [
   'fluxgo-admin-session-expired',
   'Open tickets close automatically after 24 hours without activity.',
   'ax-col-resize',
+  'table:${tableId}:order',
   'onSortChange',
   'ax-filter-panel',
   'downloadCsv',
