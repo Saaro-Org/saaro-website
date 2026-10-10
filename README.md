@@ -21,7 +21,7 @@ Open `http://localhost:3000` in your browser.
 
 ## Vercel
 
-Import `saaro-org/saaro-website` into Vercel.
+Import `fluxgo-org/fluxgo-website` into Vercel.
 
 - Framework preset: Next.js
 - Root directory: `./`
